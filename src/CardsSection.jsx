@@ -142,7 +142,10 @@ function CardsSection() {
         // copy of the gold words over the first.
         stickyEl.querySelectorAll('[data-flight-clone]').forEach((c) => c.remove())
 
-        gsap.set(allWordEls, { yPercent: 100 })
+        // yPercent:100 drops each word its own height below the overflow mask;
+        // an extra 2px covers a sub-pixel/descender sliver that peeks through the
+        // clip. The entrance rises both back to 0.
+        gsap.set(allWordEls, { yPercent: 100, y: 2 })
         gsap.set(cardsEl, { autoAlpha: 0 })
         gsap.set(titleEls, { opacity: 0 })
         gsap.set(contentEls, { autoAlpha: 0, y: 20 })
@@ -174,7 +177,7 @@ function CardsSection() {
           },
         })
         lines.forEach((line) => {
-          entrance.to(line, { yPercent: 0, duration: 1.1, ease: cubicEase }, 0)
+          entrance.to(line, { yPercent: 0, y: 0, duration: 1.1, ease: cubicEase }, 0)
         })
 
         // Flight geometry, measured up front (fonts are loaded by now). The

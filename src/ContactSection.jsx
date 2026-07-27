@@ -123,6 +123,7 @@ function ContactSection() {
         <ContactFooterPanel
           cta={cta}
           fitMobile
+          scale={scale}
           titleRef={titleRef}
           descRef={descRef}
           buttonRef={buttonRef}
