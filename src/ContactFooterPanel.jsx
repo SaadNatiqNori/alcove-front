@@ -18,6 +18,7 @@ function ContactFooterPanel({
   descRef,
   buttonRef,
   alcoveRef,
+  rootRef,
   fitMobile = false,
   scale = 1,
 }) {
@@ -27,16 +28,10 @@ function ContactFooterPanel({
   // stays locked to its 1440px position and size regardless of screen width.
   // Only engages above the 1440 reference (scale > 1); normal desktops are untouched.
   const lockScale = scale > 1
-  // Lock the CTA block to its 1440 size on large screens. `zoom` (not transform)
-  // so the block's layout box shrinks with it — that keeps the gap below the
-  // button exact instead of inflated by a transform's leftover box height.
-  const contentStyle = lockScale ? { zoom: 1 / scale } : undefined
-  // Respect the design's 161px gap between the GET IN TOUCH button and the ALCOVE
-  // wordmark. On large screens the block is bottom-aligned (mt-auto on the content,
-  // below) so it sits exactly this gap above the mask, which stays pinned to the
-  // bottom — no arbitrary drop that could push the mask off the panel. Divided by
-  // scale so it lands as a true on-screen 161px inside the zoomed panel.
-  const alcoveStyle = lockScale ? { marginTop: `${161 / scale}px` } : undefined
+  const contentStyle = lockScale
+    ? { transform: `scale(${1 / scale})`, transformOrigin: 'top center' }
+    : undefined
+  const mainStyle = lockScale ? { paddingTop: `${150 / scale}px` } : undefined
   // Mobile spec (≈402×553 fit-content frame): 23px text inset, 116px top pad,
   // 97.4px gap from the button down to the ALCOVE mask, 118px from the mask to
   // the container bottom. The mask breaks 7px past the 23px inset each side so
@@ -45,14 +40,12 @@ function ContactFooterPanel({
     ? 'relative h-auto md:h-full max-w-[1440px] mx-auto flex flex-col bg-navy px-[16px] pb-[113px] pt-[111px] text-mist md:px-8 md:pb-[31px] md:pt-[150px]'
     : 'relative h-full max-w-[1440px] mx-auto flex flex-col bg-navy px-4 pb-[31px] pt-[150px] text-mist md:px-8'
   const alcoveWrapClass = fitMobile
-    ? 'relative mt-[97.4px] mx-[-7px] md:mt-auto md:mx-0'
+    ? 'relative mt-[97.4px] mx-[-7px] md:mt-[13vh] md:mx-0'
     : 'relative mt-auto'
   return (
-    <main className={mainClass}>
+    <main ref={rootRef} className={mainClass} style={mainStyle}>
       <div
-        className={`flex flex-col items-center text-center gap-[25px] md:gap-[37px] ${
-          lockScale ? 'mt-auto' : ''
-        }`}
+        className="mt-auto flex flex-col items-center text-center gap-[25px] md:gap-[37px]"
         style={contentStyle}
       >
         <div className="overflow-hidden">
@@ -97,7 +90,7 @@ function ContactFooterPanel({
       {/* mt-auto bottom-pins the logo; no fixed top gap, or on
           short/wide viewports the 161px gap would push the ALCOVE
           mask past the section's overflow-hidden edge and clip it. */}
-      <div className={alcoveWrapClass} style={alcoveStyle}>
+      <div className={alcoveWrapClass}>
         <div
           ref={alcoveRef}
           className="w-full aspect-[64/13]"

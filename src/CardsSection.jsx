@@ -244,6 +244,11 @@ function CardsSection() {
           dissolved = on
           gsap.to(nonAccentEls, {
             yPercent: on ? -100 : 0,
+            // The slide-up alone leaves a faint sliver of the words' glyphs
+            // peeking through the bottom of the clip (the mask doesn't fully
+            // clip the line box's descender/leading region). Fade opacity to 0
+            // alongside the slide so nothing can peek; reversing restores both.
+            autoAlpha: on ? 0 : 1,
             duration: 0.8,
             ease: cubicEase,
             overwrite: true,
