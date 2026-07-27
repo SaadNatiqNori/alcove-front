@@ -66,6 +66,30 @@ function ContactSection() {
   const descRef = useRef(null)
   const buttonRef = useRef(null)
   const alcoveRef = useRef(null)
+  const panelRef = useRef(null)
+
+  // Once the zoom is scaled all the way out to MAX_SCALE, the layout stops
+  // growing and holding the section at 100vh only opens a dead gap above the
+  // ALCOVE wordmark. Past the cap we let the section fit its content instead.
+  // `fillViewport` keeps the 100vh canvas everywhere below the cap (incl. the
+  // 1440 reference, which is scale 1 but must still fill the screen).
+  const atMaxScale = scale >= MAX_SCALE
+  const fillViewport = isDesktop && !atMaxScale
+
+  // The scale-wrapper zooms via `transform`, which doesn't grow its layout box,
+  // so a content-height (auto) wrapper would let the scaled ALCOVE overflow the
+  // section's overflow-hidden edge. Reserve the *scaled* content height on the
+  // section so the visual exactly fits. Only needed in the fit-content regime.
+  const [panelHeight, setPanelHeight] = useState(0)
+  useEffect(() => {
+    const el = panelRef.current
+    if (!el) return
+    const update = () => setPanelHeight(el.offsetHeight)
+    update()
+    const ro = new ResizeObserver(update)
+    ro.observe(el)
+    return () => ro.disconnect()
+  }, [])
 
   useLayoutEffect(() => {
     const ctx = gsap.context(() => {
@@ -107,7 +131,10 @@ function ContactSection() {
   return (
     <section
       ref={sectionRef}
-      className="relative w-full h-auto md:h-screen overflow-hidden bg-navy"
+      className={`relative w-full h-auto overflow-hidden bg-navy${
+        fillViewport ? ' md:h-screen' : ''
+      }`}
+      style={atMaxScale && panelHeight ? { height: `${panelHeight * scale}px` } : undefined}
       aria-label="Contact"
     >
       <div
@@ -117,13 +144,14 @@ function ContactSection() {
           transformOrigin: 'top center',
           width: scale >= 1 ? '100%' : `${100 / scale}%`,
           marginLeft: scale >= 1 ? '0' : `${(100 - 100 / scale) / 2}%`,
-          height: isDesktop ? `${100 / scale}vh` : 'auto',
+          height: fillViewport ? `${100 / scale}vh` : 'auto',
         }}
       >
         <ContactFooterPanel
           cta={cta}
           fitMobile
           scale={scale}
+          rootRef={panelRef}
           titleRef={titleRef}
           descRef={descRef}
           buttonRef={buttonRef}

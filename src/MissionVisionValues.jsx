@@ -406,7 +406,7 @@ function MissionVisionValues() {
                       is full-bleed, while ContactFooterPanel keeps its capped,
                       centered content. */}
                   <div className="absolute inset-y-0 left-1/2 w-screen -translate-x-1/2 bg-navy" />
-                  <ContactFooterPanel cta={cta} fitMobile scale={scale} />
+                  <ContactFooterPanel cta={cta} fitMobile />
                 </div>
               )}
             </div>
