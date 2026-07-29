@@ -21,6 +21,7 @@ function ContactFooterPanel({
   rootRef,
   fitMobile = false,
   scale = 1,
+  centerDesktop = false,
 }) {
   // On wide desktops the parent ScaleLock zooms the whole panel up to MAX_SCALE,
   // which would drag the "Let's talk" block down and enlarge it. Counter-scale
@@ -29,23 +30,58 @@ function ContactFooterPanel({
   // Only engages above the 1440 reference (scale > 1); normal desktops are untouched.
   const lockScale = scale > 1
   const contentStyle = lockScale
-    ? { transform: `scale(${1 / scale})`, transformOrigin: 'top center' }
+    ? {
+        transform: `scale(${1 / scale})`,
+        // Interior section centres the block between the container top and the
+        // logo, so shrink about its own centre — otherwise the top-origin
+        // counter-scale leaves phantom space below the visual box and the gap
+        // reads larger than the space above. The home cover keeps top-center,
+        // which locks the block to its fixed 1440 position.
+        transformOrigin: centerDesktop ? 'center' : 'top center',
+      }
     : undefined
-  const mainStyle = lockScale ? { paddingTop: `${150 / scale}px` } : undefined
+  // `centerDesktop` is the standalone interior /contact section (see
+  // ContactSection). There the desktop (md+) vertical rhythm is a single rule:
+  // the "Let's talk" block is centred vertically between the container top and
+  // the ALCOVE logo (both spacers grow equally), never sitting closer than
+  // 156px to the logo (the bottom spacer's min-height is the floor, which only
+  // engages on short viewports). The desktop top padding is dropped (md:pt-0)
+  // so the block centres from the true container top, and so wide-but-short
+  // screens compress the top rather than pushing the gap + logo past the clip
+  // edge. The home cover (MissionVisionValues) leaves centerDesktop off, so its
+  // 13vh rhythm and the 150/scale lock padding are untouched.
+  const mainStyle =
+    !centerDesktop && lockScale ? { paddingTop: `${150 / scale}px` } : undefined
   // Mobile spec (≈402×553 fit-content frame): 23px text inset, 116px top pad,
   // 97.4px gap from the button down to the ALCOVE mask, 118px from the mask to
   // the container bottom. The mask breaks 7px past the 23px inset each side so
   // it lands ~370px wide (near full-bleed) instead of matching the text column.
-  const mainClass = fitMobile
-    ? 'relative h-auto md:h-full max-w-[1440px] mx-auto flex flex-col bg-navy px-[16px] pb-[113px] pt-[111px] text-mist md:px-8 md:pb-[31px] md:pt-[150px]'
-    : 'relative h-full max-w-[1440px] mx-auto flex flex-col bg-navy px-4 pb-[31px] pt-[150px] text-mist md:px-8'
-  const alcoveWrapClass = fitMobile
-    ? 'relative mt-[97.4px] mx-[-7px] md:mt-[13vh] md:mx-0'
-    : 'relative mt-auto'
+  const mainClass = centerDesktop
+    ? 'relative h-auto md:h-full max-w-[1440px] mx-auto flex flex-col bg-navy px-[16px] pb-[113px] pt-[111px] text-mist md:px-8 md:pb-[31px] md:pt-0'
+    : fitMobile
+      ? 'relative h-auto md:h-full max-w-[1440px] mx-auto flex flex-col bg-navy px-[16px] pb-[113px] pt-[111px] text-mist md:px-8 md:pb-[31px] md:pt-[150px]'
+      : 'relative h-full max-w-[1440px] mx-auto flex flex-col bg-navy px-4 pb-[31px] pt-[150px] text-mist md:px-8'
+  // Desktop rhythm for the interior section is driven by the two spacers below,
+  // so the ALCOVE wrapper drops its own md gap (mt-0); mobile keeps mt-[97.4px].
+  const alcoveWrapClass = centerDesktop
+    ? 'relative mt-[97.4px] mx-[-7px] md:mt-0 md:mx-0'
+    : fitMobile
+      ? 'relative mt-[97.4px] mx-[-7px] md:mt-[13vh] md:mx-0'
+      : 'relative mt-auto'
+  // Bottom spacer (md+ only): grows equally with the top spacer to centre the
+  // block, but never drops below 156px. The floor is ÷scale because the spacer
+  // lives un-counter-scaled inside the ×scale wrapper, so 156/scale renders as
+  // 156 visual px.
+  const bottomSpacerStyle = { flex: '1 1 0%', minHeight: `${156 / scale}px` }
   return (
     <main ref={rootRef} className={mainClass} style={mainStyle}>
+      {/* Top spacer: grows equally with the bottom spacer to centre the block
+          between the container top and the logo. md+ only. */}
+      {centerDesktop && <div aria-hidden className="hidden md:block md:flex-1" />}
       <div
-        className="mt-auto flex flex-col items-center text-center gap-[25px] md:gap-[37px]"
+        className={`${
+          centerDesktop ? 'mt-auto md:mt-0' : 'mt-auto'
+        } flex flex-col items-center text-center gap-[25px] md:gap-[37px]`}
         style={contentStyle}
       >
         <div className="overflow-hidden">
@@ -86,6 +122,12 @@ function ContactFooterPanel({
           </Link>
         </div>
       </div>
+
+      {/* Bottom spacer (md+ only): the fixed / minimum 156px gap between the
+          "Let's talk" block and the ALCOVE logo. */}
+      {centerDesktop && (
+        <div aria-hidden className="hidden md:block" style={bottomSpacerStyle} />
+      )}
 
       {/* mt-auto bottom-pins the logo; no fixed top gap, or on
           short/wide viewports the 161px gap would push the ALCOVE
