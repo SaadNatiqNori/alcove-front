@@ -56,6 +56,35 @@ export const REVEAL = {
   loadDelay: 0.2,
 }
 
+// The navy contact footer's own entrance — a longer travel and a wider stagger
+// than the section reveal above, because the panel is a full screen of its own
+// with only four things on it. Shared by every place the panel appears (the
+// standalone ContactSection on interior pages, and the home page's final cover
+// layer inside MissionVisionValues) so the footer reads identically site-wide.
+export const FOOTER_REVEAL = { y: 80, duration: 1.4, stagger: 0.12 }
+
+/**
+ * Runs FOOTER_REVEAL over a ContactFooterPanel's four parts, in order.
+ *
+ * Call inside a gsap.context so the tween is reverted with its component.
+ * `start` defaults to the house 'top 80%' read off `trigger`; the home page's
+ * cover layer passes its own, because there the panel is an inset-0 layer moved
+ * by the section's scrub and its position can't be read off the layout.
+ */
+export function revealFooterPanel(parts, trigger, start = REVEAL.start) {
+  const els = parts.filter(Boolean)
+  if (!els.length || !trigger) return
+  gsap.set(els, { y: FOOTER_REVEAL.y, opacity: 0 })
+  gsap.to(els, {
+    y: 0,
+    opacity: 1,
+    duration: FOOTER_REVEAL.duration,
+    ease: cubicEase,
+    stagger: FOOTER_REVEAL.stagger,
+    scrollTrigger: { trigger, start, toggleActions: 'restart none restart reset' },
+  })
+}
+
 /**
  * Staggered "one by one" scroll reveal.
  *

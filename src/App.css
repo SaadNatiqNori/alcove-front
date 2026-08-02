@@ -1,12 +1,12 @@
 body {
   overscroll-behavior: none;
-  background: var(--color-navy);
+  background: #E2EAF2;
   overflow-x: hidden;
 }
 
 .page {
   min-height: 100vh;
-  background: var(--color-navy);
+  background: #E2EAF2;
   color: #d6deea;
   padding: 1.25rem 2rem 3rem;
 }

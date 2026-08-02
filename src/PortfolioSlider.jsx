@@ -1,4 +1,4 @@
-import { useRef, useState, useEffect } from 'react'
+import { useRef, useEffect, useLayoutEffect } from 'react'
 import { Link } from 'react-router-dom'
 import { gsap } from 'gsap'
 import { ScrollTrigger } from 'gsap/ScrollTrigger'
@@ -6,7 +6,7 @@ import ArrowIcon from './ArrowIcon'
 import { useRevealOnScroll } from './motion'
 import { useProjects, useContent } from './api'
 import { PROJECTS_DATA } from './projects'
-import { MAX_SCALE } from './useScale'
+import { useScale, useIsDesktop, useScaledHeight } from './useScale'
 import { useLenis } from './SmoothScroll'
 
 gsap.registerPlugin(ScrollTrigger)
@@ -18,35 +18,6 @@ const PORTFOLIO_FALLBACK = {
   description:
     'Our portfolio includes residential, commercial, and mixed-use properties, all designed to enhance quality of life and create long-term value for investors, residents, and communities.',
   ctaLabel: 'CHECK ALL',
-}
-
-function useScale(referenceWidth = 1440) {
-  const [state, setState] = useState(() => {
-    if (typeof window !== 'undefined') {
-      const width = window.innerWidth
-      const dpr = window.devicePixelRatio || 1
-      return {
-        scale: width >= 768 ? Math.min(width / referenceWidth, MAX_SCALE) : 1,
-        initialDPR: dpr,
-      }
-    }
-    return { scale: 1, initialDPR: 1 }
-  })
-
-  useEffect(() => {
-    const setScale = (s) => setState((prev) => ({ ...prev, scale: s }))
-    const handleResize = () => {
-      const width = window.innerWidth
-      const currentDPR = window.devicePixelRatio || 1
-      const virtualWidth = width * (currentDPR / state.initialDPR)
-      if (virtualWidth >= 768) setScale(Math.min(width / referenceWidth, MAX_SCALE))
-      else setScale(1)
-    }
-    window.addEventListener('resize', handleResize)
-    return () => window.removeEventListener('resize', handleResize)
-  }, [referenceWidth, state.initialDPR])
-
-  return state.scale
 }
 
 export function ProjectIllustration({ variant }) {
@@ -191,21 +162,25 @@ export function ProjectIllustration({ variant }) {
 
 function PortfolioSlider() {
   const scale = useScale()
-  // Below md the section stops being a scale-locked, single-viewport horizontal
-  // slider and becomes a naturally-flowing vertical stack. `scale` can't tell us
-  // we're on mobile (desktop at exactly 1440 also yields scale === 1), so track
-  // the breakpoint directly.
-  const [isMobile, setIsMobile] = useState(() =>
-    typeof window !== 'undefined'
-      ? window.matchMedia('(max-width: 767px)').matches
-      : false
-  )
-  useEffect(() => {
-    const mq = window.matchMedia('(max-width: 767px)')
-    const onChange = (e) => setIsMobile(e.matches)
-    mq.addEventListener('change', onChange)
-    return () => mq.removeEventListener('change', onChange)
-  }, [])
+  // Outside the desktop layout the section stops being a scale-locked,
+  // single-viewport horizontal slider and becomes a naturally-flowing vertical
+  // stack. `scale` can't tell us which layout we're in (desktop at exactly 1440
+  // yields scale === 1, and tablet portrait yields a scale above 1), so track
+  // the layout predicate directly.
+  const isDesktop = useIsDesktop()
+  const isMobile = !isDesktop
+  const wrapperRef = useRef(null)
+  // Only the stacked (non-desktop) layout grows with its content; the desktop
+  // slider is locked to one viewport by `md:h-screen`, so it needs no reserve.
+  const reservedHeight = useScaledHeight(wrapperRef, scale, isMobile && scale !== 1)
+  // Reserving the height changes the document length after first paint, which
+  // moves every trigger below this section (notably the MVV cover, whose scrub
+  // would otherwise end past the reachable scroll and leave its footer stranded
+  // mid-rise). Re-measure once the reserve lands.
+  useLayoutEffect(() => {
+    if (reservedHeight == null) return
+    ScrollTrigger.refresh()
+  }, [reservedHeight])
   const lenis = useLenis()
   const home = useContent('home', { portfolio: PORTFOLIO_FALLBACK })
   const portfolio = home.portfolio ?? PORTFOLIO_FALLBACK
@@ -524,15 +499,20 @@ function PortfolioSlider() {
     <section
       ref={sectionRef}
       className="relative w-full overflow-hidden bg-[#E6EBF0] md:h-screen"
+      // Tablet zoom: the stacked track renders `scale` times taller than it
+      // lays out, so the section has to reserve the scaled height or the last
+      // cards are clipped away by overflow-hidden.
+      style={reservedHeight != null ? { height: `${reservedHeight}px` } : undefined}
       aria-label="Portfolio overview"
     >
       <div
+        ref={wrapperRef}
         className="scale-wrapper"
         style={{
           transform: `scale(${scale})`,
           transformOrigin: 'top center',
-          width: scale >= 1 ? '100%' : `${100 / scale}%`,
-          marginLeft: scale >= 1 ? '0' : `${(100 - 100 / scale) / 2}%`,
+          width: isDesktop && scale >= 1 ? '100%' : `${100 / scale}%`,
+          marginLeft: isDesktop && scale >= 1 ? '0' : `${(100 - 100 / scale) / 2}%`,
           // Mobile: grow with the stacked content and let the page scroll.
           // Desktop: locked to one viewport so the slider fills the screen.
           height: isMobile ? 'auto' : `${100 / scale}vh`,

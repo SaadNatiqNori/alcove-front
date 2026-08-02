@@ -14,13 +14,20 @@ import logo from './assets/Logo.svg'
 // with the mask contained and centred — which also fixes the ink width, so both
 // wordmarks land at the same size and the same centre line. The matching
 // min(40px, 9.3023vw) bottom gap is on mainClass.
-const MOBILE_ALCOVE = 'max-md:aspect-auto max-md:[height:min(75px,17.4419vw)]'
+const MOBILE_ALCOVE = 'max-md:aspect-auto max-md:[height:min(110px,17.4419vw)]'
 
 // fitMobile: on interior pages the footer is a normal-flow section, so below
 // the md breakpoint it collapses to a fit-content block (natural padding, a
 // fixed gap above ALCOVE) instead of the full 100vh desktop canvas. The home
 // cover leaves it off — there the panel must fill the rising full-screen layer,
 // so it keeps h-full + the mt-auto bottom-pin at every width.
+//
+// fillMobile: on the home page the footer rides up over the Values card as the
+// last layer of the MissionVisionValues cover, inside a strip fixed to the
+// mobile spec's 553px. The panel has to fill that strip exactly — at h-auto it
+// would come up short and leave the card showing through below it. The block
+// keeps its 111px top inset and the wordmark stays bottom-pinned; the gap
+// between them takes the difference.
 function ContactFooterPanel({
   cta,
   titleRef,
@@ -29,6 +36,7 @@ function ContactFooterPanel({
   alcoveRef,
   rootRef,
   fitMobile = false,
+  fillMobile = false,
   scale = 1,
   centerDesktop = false,
 }) {
@@ -66,10 +74,13 @@ function ContactFooterPanel({
   // the shared mobile treatment described on MOBILE_ALCOVE below — same size,
   // centring and bottom gap as the hero's (see HeroSustainable), so the two
   // wordmarks read as one element across the page.
+  // Filling the mobile strip is purely a height change — the strip is authored
+  // in real pixels, so every spec value below still applies unaltered.
+  const mobileH = fillMobile ? 'h-full' : 'h-auto'
   const mainClass = centerDesktop
-    ? 'relative h-auto md:h-full max-w-[1440px] mx-auto flex flex-col bg-navy px-[16px] max-md:[padding-bottom:min(40px,9.3023vw)] pt-[111px] text-mist md:px-8 md:pb-[31px] md:pt-0'
+    ? `relative ${mobileH} md:h-full max-w-[1440px] mx-auto flex flex-col bg-navy px-[16px] max-md:[padding-bottom:min(40px,9.3023vw)] pt-[111px] text-mist md:px-8 md:pb-[31px] md:pt-0`
     : fitMobile
-      ? 'relative h-auto md:h-full max-w-[1440px] mx-auto flex flex-col bg-navy px-[16px] max-md:[padding-bottom:min(40px,9.3023vw)] pt-[111px] text-mist md:px-8 md:pb-[31px] md:pt-[150px]'
+      ? `relative ${mobileH} md:h-full max-w-[1440px] mx-auto flex flex-col bg-navy px-[16px] max-md:[padding-bottom:min(40px,9.3023vw)] pt-[111px] text-mist md:px-8 md:pb-[31px] md:pt-[150px]`
       : 'relative h-full max-w-[1440px] mx-auto flex flex-col bg-navy px-4 pb-[31px] pt-[150px] text-mist md:px-8'
   // Desktop rhythm for the interior section is driven by the two spacers below,
   // so the ALCOVE wrapper drops its own md gap (mt-0); mobile keeps mt-[97.4px].
@@ -88,9 +99,12 @@ function ContactFooterPanel({
       {/* Top spacer: grows equally with the bottom spacer to centre the block
           between the container top and the logo. md+ only. */}
       {centerDesktop && <div aria-hidden className="hidden md:block md:flex-1" />}
+      {/* An auto margin here would swallow the mobile slack before the spacer
+          below it ever grows, so filling the strip drops it and lets the block
+          sit at its 111px top inset. */}
       <div
         className={`${
-          centerDesktop ? 'mt-auto md:mt-0' : 'mt-auto'
+          centerDesktop ? (fillMobile ? 'mt-0' : 'mt-auto md:mt-0') : 'mt-auto'
         } flex flex-col items-center text-center gap-[25px] md:gap-[37px]`}
         style={contentStyle}
       >
@@ -138,6 +152,12 @@ function ContactFooterPanel({
       {centerDesktop && (
         <div aria-hidden className="hidden md:block" style={bottomSpacerStyle} />
       )}
+
+      {/* Mobile slack (fillMobile only): takes the difference between the 553px
+          strip and the block's natural height, so the wordmark bottom-pins. It
+          sits above the wrapper's own mt-[97.4px], so the gap stretches from
+          that spec value rather than replacing it. */}
+      {fillMobile && <div aria-hidden className="md:hidden flex-1" />}
 
       {/* mt-auto bottom-pins the logo; no fixed top gap, or on
           short/wide viewports the 161px gap would push the ALCOVE

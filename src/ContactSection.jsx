@@ -1,10 +1,10 @@
-import { useLayoutEffect, useRef, useState, useEffect } from 'react'
+import { useLayoutEffect, useRef } from 'react'
 import { gsap } from 'gsap'
 import { ScrollTrigger } from 'gsap/ScrollTrigger'
 import ContactFooterPanel from './ContactFooterPanel'
-import { cubicEase } from './easings'
+import { revealFooterPanel } from './motion'
 import { useContent } from './api'
-import { MAX_SCALE } from './useScale'
+import { useScale, useIsDesktop, useScaledHeight } from './useScale'
 
 gsap.registerPlugin(ScrollTrigger)
 
@@ -15,50 +15,14 @@ const CTA_FALLBACK = {
   buttonLabel: 'GET IN TOUCH',
 }
 
-function useScale(referenceWidth = 1440) {
-  const [state, setState] = useState(() => {
-    if (typeof window !== 'undefined') {
-      const width = window.innerWidth
-      const dpr = window.devicePixelRatio || 1
-      return {
-        scale: width >= 768 ? Math.min(width / referenceWidth, MAX_SCALE) : 1,
-        initialDPR: dpr,
-      }
-    }
-    return { scale: 1, initialDPR: 1 }
-  })
-
-  useEffect(() => {
-    const setScale = (s) => setState((prev) => ({ ...prev, scale: s }))
-    const handleResize = () => {
-      const width = window.innerWidth
-      const currentDPR = window.devicePixelRatio || 1
-      const virtualWidth = width * (currentDPR / state.initialDPR)
-      if (virtualWidth >= 768) setScale(Math.min(width / referenceWidth, MAX_SCALE))
-      else setScale(1)
-    }
-    window.addEventListener('resize', handleResize)
-    return () => window.removeEventListener('resize', handleResize)
-  }, [referenceWidth, state.initialDPR])
-
-  return state.scale
-}
-
 function ContactSection() {
   const scale = useScale()
-  // The scaled-canvas math (100vh wrapper + scale transform) only applies at the
-  // md+ desktop breakpoint. Below it the footer is a natural fit-content block,
-  // so the wrapper must drop the forced 100vh height. Keyed off the 768px query,
-  // not `scale`, because a 1440px desktop also yields scale 1 yet still needs vh.
-  const [isDesktop, setIsDesktop] = useState(() =>
-    typeof window !== 'undefined' ? window.innerWidth >= 768 : true
-  )
-  useEffect(() => {
-    const mq = window.matchMedia('(min-width: 768px)')
-    const onChange = () => setIsDesktop(mq.matches)
-    mq.addEventListener('change', onChange)
-    return () => mq.removeEventListener('change', onChange)
-  }, [])
+  // The scaled-canvas math (100vh wrapper + scale transform) only applies to the
+  // desktop layout. Below it the footer is a natural fit-content block, so the
+  // wrapper must drop the forced 100vh height. Keyed off the layout predicate,
+  // not `scale`, because a 1440px desktop also yields scale 1 yet still needs vh
+  // — and tablet portrait yields a scale above 1 while needing the mobile form.
+  const isDesktop = useIsDesktop()
   const footer = useContent('footer', { cta: CTA_FALLBACK })
   const cta = footer.cta ?? CTA_FALLBACK
   const sectionRef = useRef(null)
@@ -75,38 +39,22 @@ function ContactSection() {
   // The content at max scale is a fixed ~801px (the panel is capped at 1440px
   // wide), which fits any viewport wide enough to reach the cap.
   const fillViewport = isDesktop
+  const wrapperRef = useRef(null)
+  // Only the fit-content (non-desktop) form needs it; `fillViewport` already
+  // locks the desktop section to one viewport.
+  const reservedHeight = useScaledHeight(wrapperRef, scale, !fillViewport && scale !== 1)
+  // See PortfolioSlider: reserving the height lengthens the document after
+  // first paint, so every trigger measured before it is stale.
+  useLayoutEffect(() => {
+    if (reservedHeight == null) return
+    ScrollTrigger.refresh()
+  }, [reservedHeight])
 
   useLayoutEffect(() => {
     const ctx = gsap.context(() => {
-      gsap.set(
-        [
-          titleRef.current,
-          descRef.current,
-          buttonRef.current,
-          alcoveRef.current,
-        ],
-        { y: 80, opacity: 0 }
-      )
-
-      gsap.to(
-        [
-          titleRef.current,
-          descRef.current,
-          buttonRef.current,
-          alcoveRef.current,
-        ],
-        {
-          y: 0,
-          opacity: 1,
-          duration: 1.4,
-          ease: cubicEase,
-          stagger: 0.12,
-          scrollTrigger: {
-            trigger: sectionRef.current,
-            start: 'top 80%',
-            toggleActions: 'restart none restart reset',
-          },
-        }
+      revealFooterPanel(
+        [titleRef.current, descRef.current, buttonRef.current, alcoveRef.current],
+        sectionRef.current
       )
     })
 
@@ -119,15 +67,20 @@ function ContactSection() {
       className={`relative w-full h-auto overflow-hidden bg-navy${
         fillViewport ? ' md:h-screen' : ''
       }`}
+      // Tablet zoom: the fit-content footer renders `scale` times taller than
+      // it lays out, so without a reserved height overflow-hidden cuts off its
+      // bottom on every page.
+      style={reservedHeight != null ? { height: `${reservedHeight}px` } : undefined}
       aria-label="Contact"
     >
       <div
+        ref={wrapperRef}
         className="scale-wrapper"
         style={{
           transform: `scale(${scale})`,
           transformOrigin: 'top center',
-          width: scale >= 1 ? '100%' : `${100 / scale}%`,
-          marginLeft: scale >= 1 ? '0' : `${(100 - 100 / scale) / 2}%`,
+          width: isDesktop && scale >= 1 ? '100%' : `${100 / scale}%`,
+          marginLeft: isDesktop && scale >= 1 ? '0' : `${(100 - 100 / scale) / 2}%`,
           height: fillViewport ? `${100 / scale}vh` : 'auto',
         }}
       >

@@ -9,6 +9,7 @@ import { useProjects } from './api'
 import { PROJECTS_DATA } from './projects'
 import { ProjectIllustration } from './PortfolioSlider'
 import { useLenis } from './SmoothScroll'
+import { DESKTOP_MIN } from './breakpoints'
 
 const CARD_WIDTH = 520
 
@@ -109,7 +110,7 @@ function ProjectsListPage() {
   // Mobile viewport → tap-to-expand accordion instead of the hover follower.
   const [isMobile, setIsMobile] = useState(() =>
     typeof window !== 'undefined'
-      ? window.matchMedia('(max-width: 767px)').matches
+      ? window.matchMedia(`(max-width: ${DESKTOP_MIN - 1}px)`).matches
       : false
   )
   const [openIndex, setOpenIndex] = useState(null) // expanded row (mobile); null = all collapsed
@@ -132,7 +133,7 @@ function ProjectsListPage() {
 
   // Track the mobile breakpoint; collapse any open card when leaving mobile.
   useEffect(() => {
-    const mq = window.matchMedia('(max-width: 767px)')
+    const mq = window.matchMedia(`(max-width: ${DESKTOP_MIN - 1}px)`)
     const onChange = (e) => setIsMobile(e.matches)
     setIsMobile(mq.matches)
     mq.addEventListener('change', onChange)

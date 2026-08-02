@@ -1,10 +1,10 @@
-import { useLayoutEffect, useRef, useState, useEffect } from 'react'
+import { useLayoutEffect, useRef } from 'react'
 import { gsap } from 'gsap'
 import { ScrollTrigger } from 'gsap/ScrollTrigger'
 import { useContent } from './api'
 import ContactFooterPanel from './ContactFooterPanel'
-import { MAX_SCALE } from './useScale'
-import { REVEAL, prefersReducedMotion } from './motion'
+import { useScale, useIsDesktop } from './useScale'
+import { REVEAL, prefersReducedMotion, revealFooterPanel } from './motion'
 import { cubicEase } from './easings'
 
 const CTA_FALLBACK = {
@@ -34,43 +34,6 @@ const MVV_FALLBACK = {
       { term: 'Integrity', description: 'Building trust through transparency and professionalism.' },
     ],
   },
-}
-
-function useScale(referenceWidth = 1440, mobileReferenceWidth = 430) {
-  // Below 768px the mobile layout is authored for a 430px-wide reference
-  // (iPhone 14 Pro Max). Scaling by width/430 — capped at 1 so 430px+ stays
-  // pixel-identical to the design — shrinks the whole cover stage uniformly on
-  // narrower phones so each card's title/body/illustration keep their
-  // proportions instead of overflowing. The parallax uses yPercent (relative to
-  // each card's own height), so it is unaffected by the scale value.
-  const mobileScale = (width) => Math.min(1, width / mobileReferenceWidth)
-
-  const [state, setState] = useState(() => {
-    if (typeof window !== 'undefined') {
-      const width = window.innerWidth
-      const dpr = window.devicePixelRatio || 1
-      return {
-        scale: width >= 768 ? Math.min(width / referenceWidth, MAX_SCALE) : mobileScale(width),
-        initialDPR: dpr,
-      }
-    }
-    return { scale: 1, initialDPR: 1 }
-  })
-
-  useEffect(() => {
-    const setScale = (s) => setState((prev) => ({ ...prev, scale: s }))
-    const handleResize = () => {
-      const width = window.innerWidth
-      const currentDPR = window.devicePixelRatio || 1
-      const virtualWidth = width * (currentDPR / state.initialDPR)
-      if (virtualWidth >= 768) setScale(Math.min(width / referenceWidth, MAX_SCALE))
-      else setScale(mobileScale(width))
-    }
-    window.addEventListener('resize', handleResize)
-    return () => window.removeEventListener('resize', handleResize)
-  }, [referenceWidth, mobileReferenceWidth, state.initialDPR])
-
-  return state.scale
 }
 
 function MissionIllustration({ className = 'w-[280px] h-[300px]' }) {
@@ -225,7 +188,7 @@ function Card({ refProp, title, description, isValues, values, illustration, zIn
 }
 
 function MissionVisionValues() {
-  const scale = useScale()
+  const scale = useScale(1440, 430)
   const home = useContent('home', { mvv: MVV_FALLBACK })
   const mvv = home.mvv ?? MVV_FALLBACK
   const footer = useContent('footer', { cta: CTA_FALLBACK })
@@ -236,20 +199,17 @@ function MissionVisionValues() {
   const visionRef = useRef(null)
   const valuesRef = useRef(null)
   const footerRef = useRef(null)
+  // Parts of the navy footer panel, animated in the same staggered order the
+  // standalone ContactSection uses on interior pages.
+  const footerTitleRef = useRef(null)
+  const footerDescRef = useRef(null)
+  const footerBtnRef = useRef(null)
+  const footerAlcoveRef = useRef(null)
 
-  // Below md the navy footer leaves the cinematic entirely: the parallax runs
-  // for the three cards, Values docks as the final cover, and the footer renders
-  // as a normal fit-content block after the pinned stage (see the render). So the
-  // footer layer is only mounted/animated on desktop.
-  const [isMobile, setIsMobile] = useState(() =>
-    typeof window !== 'undefined' ? window.innerWidth < 768 : false
-  )
-  useEffect(() => {
-    const mq = window.matchMedia('(max-width: 767px)')
-    const onChange = () => setIsMobile(mq.matches)
-    mq.addEventListener('change', onChange)
-    return () => mq.removeEventListener('change', onChange)
-  }, [])
+  // The navy footer is the fourth layer of the cinematic at every width — it
+  // rises to cover Values exactly as Values covered Vision. Only the scale
+  // wrapper's sizing still differs by breakpoint (see the render).
+  const isDesktop = useIsDesktop()
 
   useLayoutEffect(() => {
     const ctx = gsap.context(() => {
@@ -275,8 +235,12 @@ function MissionVisionValues() {
       // "the next tab shows a little earlier before the previous scrolls out".
       const DRIFT = -50 // outgoing lag; smaller = stronger cover, larger = gentler dock
       const PEEK = 33   // how far up (%) the next tab already is when its turn begins; bigger = less gap / earlier reveal, but shows more of the next tab at the start
-      const layers = [missionRef.current, visionRef.current, valuesRef.current].filter(Boolean)
-      if (!isMobile && footerRef.current) layers.push(footerRef.current)
+      const layers = [
+        missionRef.current,
+        visionRef.current,
+        valuesRef.current,
+        footerRef.current,
+      ].filter(Boolean)
 
       // Prime each layer before the first scrubbed frame so transforms begin on
       // the compositor and do not introduce a one-frame hitch at section entry.
@@ -291,7 +255,7 @@ function MissionVisionValues() {
       gsap.set(missionRef.current, { yPercent: 0 })
       gsap.set(visionRef.current, { yPercent: 100 - PEEK })
       gsap.set(valuesRef.current, { yPercent: 100 })
-      if (!isMobile) gsap.set(footerRef.current, { yPercent: 100 })
+      gsap.set(footerRef.current, { yPercent: 100 })
 
       const tl = gsap.timeline({
         defaults: { ease: 'none', force3D: true },
@@ -318,104 +282,159 @@ function MissionVisionValues() {
       // T2 — Vision drifts up; Values (already peeking) finishes rising to cover.
       tl.to(visionRef.current, { yPercent: DRIFT, duration: 1 }, 1)
 
-      // Desktop only: the navy footer is the final rising cover. On mobile the
-      // timeline ends here with Values docked (yPercent 0) — the footer is a
-      // separate block after the stage — so Values must NOT drift up.
-      if (!isMobile) {
+      // T3 — Values drifts up as the footer arrives, exactly like Mission and
+      // Vision before it, so the last handover carries the same motion as the
+      // two the reader has already seen.
+      tl.to(valuesRef.current, { yPercent: DRIFT, duration: 1 }, 2)
+
+      if (isDesktop) {
         // Footer mirrors Values' early rise, one beat later: PEEK% up by t=2.
         tl.to(footerRef.current, { yPercent: 0, duration: riseDur }, 3 - riseDur)
-        // T3 — Values drifts up; the navy footer rises to cover, same as every card.
-        tl.to(valuesRef.current, { yPercent: DRIFT, duration: 1 }, 2)
+      } else {
+        // Mobile: the footer is a 553px strip rather than a full panel, so it
+        // rises across the last beat with no PEEK head start — its edge would
+        // otherwise show while Values was still arriving. yPercent is relative
+        // to the strip's own height, so 100 parks it just below the stage.
+        tl.to(footerRef.current, { yPercent: 0, duration: 1 }, 2)
       }
 
       // Footer (last layer) settles docked; the sticky stage releases at the
       // section end, so the footer holds full-screen as the page bottom.
 
-      // ── Card content entrance ──────────────────────────────────────────────
+      // ── Layer content entrance ─────────────────────────────────────────────
       // The house fade+rise from motion.js (REVEAL), same as the About and
       // Contact pages: title and body together, then the illustration a moment
-      // behind them. These cards can't use useRevealOnScroll — all three sit
-      // stacked at inset-0 and are moved by the scrub, so ScrollTrigger can't
-      // read "this element is 80% up the viewport" off the layout. Each card's
-      // entrance instead fires at the scroll offset where THIS timeline has put
-      // the card's top edge at that same 80% mark.
+      // behind them.
+      //
+      // Scroll-driven, not time-based. These layers can't use useRevealOnScroll —
+      // they sit stacked at inset-0 and are moved by the cover scrub, so
+      // ScrollTrigger can't read "this element is 80% up the viewport" off the
+      // layout. But a wall-clock tween is wrong here for a second reason: the
+      // cover is a pure function of scroll, and a card's whole turn is only ~one
+      // beat of scrolling, so a 1.2s entrance loses the race at any real
+      // scrolling speed — flick into the section and the card docks (or is
+      // covered again) while its text is still at opacity 0, a blank slab.
+      // Running the entrance off the same scroll axis as the cover ties it to
+      // the layer it belongs to: each part is fully in exactly when its layer
+      // docks, whatever the scroll speed.
       if (prefersReducedMotion()) return
 
       const IN_VIEW_AT = 80 // matches REVEAL.start ('top 80%'), expressed as % of the viewport
-      const ILLUSTRATION_LAG = 0.25 // seconds the drawing trails its own title/body
       const beats = tl.duration()
 
-      // A card comes into view one of two ways, so its trigger is written
+      // Scroll offset of a beat on the cover timeline, as a ScrollTrigger
+      // position. Functional so a resize re-measures instead of keeping a stale
+      // pixel offset; `top+=X top` is reached once the scroll passes the
+      // section's start by X — the same axis the cover timeline scrubs on.
+      const atBeat = (beat) => () => {
+        const range = sectionRef.current.offsetHeight - window.innerHeight
+        return `top+=${(beat / beats) * range} top`
+      }
+
+      // A layer comes into view one of two ways, so its window opens
       // accordingly:
       //   • While the section itself is still scrolling up into place, the whole
-      //     stage rides in. A card parked at y0% of the stage is 80% up the
+      //     stage rides in. A layer parked at y0% of the stage is 80% up the
       //     viewport when the section's top is (80 - y0)% down it — Mission
       //     (y0 0) gets the plain 'top 80%', Vision (already peeking) a later
       //     one.
-      //   • A card that starts fully below the fold (Values) only appears once
-      //     the stage is pinned and the scrub lifts it, so its trigger is the
-      //     scroll offset at which THIS timeline puts its top edge on the mark.
-      const startFor = (y0, t0, t1) => {
-        if (y0 < IN_VIEW_AT) return `top ${IN_VIEW_AT - y0}%`
-        const beat = t0 + (1 - IN_VIEW_AT / y0) * (t1 - t0)
-        // Functional so a resize re-measures instead of keeping a stale pixel
-        // offset; `top+=X top` fires once the scroll passes the section's start
-        // by X — the same axis the cover timeline scrubs on.
-        return () => {
-          const range = sectionRef.current.offsetHeight - window.innerHeight
-          return `top+=${(beat / beats) * range} top`
-        }
-      }
+      //   • A layer that starts fully below the fold (Values, the footer) only
+      //     appears once the stage is pinned and the scrub lifts it, so its
+      //     window opens at the beat at which THIS timeline puts its top edge on
+      //     the mark.
+      const startFor = (y0, t0, t1) =>
+        y0 < IN_VIEW_AT
+          ? `top ${IN_VIEW_AT - y0}%`
+          : atBeat(t0 + (1 - IN_VIEW_AT / y0) * (t1 - t0))
 
-      const revealCard = (cardEl, start) => {
-        if (!cardEl) return
-        // A rebuild (breakpoint flip) must not pull already-entered content back
-        // to invisible, so the flag lives on the DOM node — same guard the house
-        // hook uses.
-        const part = (sel) => {
-          const el = cardEl.querySelector(sel)
-          return el && !el.dataset.revealed ? el : null
-        }
-        const text = ['[data-card-title]', '[data-card-body]'].map(part).filter(Boolean)
-        const illustration = part('[data-card-illustration]')
-        if (!text.length && !illustration) return
+      // Each part takes 0.7 of its layer's entrance window, so the last one in
+      // (offset 0.3) still lands exactly as the layer docks.
+      const PART_SPAN = 0.7
+      const revealLayer = (parts, start, end) => {
+        const items = parts.filter(([el]) => el)
+        if (!items.length) return
+        const enter = gsap.timeline({ paused: true })
+        items.forEach(([el, at]) =>
+          enter.from(
+            el,
+            { opacity: 0, y: REVEAL.y, duration: PART_SPAN, ease: cubicEase },
+            at
+          )
+        )
 
-        const enter = gsap.timeline({
-          scrollTrigger: { trigger: sectionRef.current, start, once: true },
-          onComplete: () =>
-            [...text, illustration].forEach((el) => el && (el.dataset.revealed = '1')),
+        // Ratcheted rather than scrubbed: the entrance follows the scroll on the
+        // way in, but the playhead only ever moves forward. A plain scrub is
+        // reversible, so coming back up from the footer would fade every card's
+        // content out again — an entrance should happen once, and content the
+        // reader has already arrived at should stay put.
+        let peak = 0
+        const advance = (self) => {
+          if (self.progress > peak) enter.progress((peak = self.progress))
+        }
+        ScrollTrigger.create({
+          trigger: sectionRef.current,
+          start,
+          end,
+          onUpdate: advance,
+          // onUpdate only runs while the scroll is inside the window. A flick can
+          // clear the whole window between two frames, and a reload can land past
+          // it outright, so leaving and refreshing have to advance it too — both
+          // report progress 1 from beyond the end.
+          onLeave: advance,
+          onRefresh: advance,
         })
-        if (text.length) {
-          enter.from(
-            text,
-            {
-              opacity: 0,
-              y: REVEAL.y,
-              duration: REVEAL.duration,
-              stagger: REVEAL.stagger,
-              ease: cubicEase,
-            },
-            0
-          )
-        }
-        if (illustration) {
-          enter.from(
-            illustration,
-            { opacity: 0, y: REVEAL.y, duration: REVEAL.duration, ease: cubicEase },
-            REVEAL.stagger + ILLUSTRATION_LAG
-          )
-        }
       }
+
+      const cardParts = (cardEl) =>
+        cardEl
+          ? [
+              [cardEl.querySelector('[data-card-title]'), 0],
+              [cardEl.querySelector('[data-card-body]'), 0.1],
+              // The drawing trails its own title and body.
+              [cardEl.querySelector('[data-card-illustration]'), 0.3],
+            ]
+          : []
 
       // Mission is docked from the section's first frame, Vision rides in
-      // already peeking, and Values climbs in partway through its own rise.
-      revealCard(missionRef.current, startFor(0, 0, 1))
-      revealCard(visionRef.current, startFor(100 - PEEK, 0, 1))
-      revealCard(valuesRef.current, startFor(100, 2 - riseDur, 2))
+      // already peeking and docks at beat 1, Values climbs in partway through
+      // its own rise and docks at beat 2.
+      revealLayer(cardParts(missionRef.current), startFor(0, 0, 1), atBeat(0))
+      revealLayer(cardParts(visionRef.current), startFor(100 - PEEK, 0, 1), atBeat(1))
+      revealLayer(cardParts(valuesRef.current), startFor(100, 2 - riseDur, 2), atBeat(2))
+
+      // The navy footer is not a card: it gets the shared ContactFooterPanel
+      // entrance (revealFooterPanel), so the home page's footer animates exactly
+      // like the one on every interior page.
+      //
+      // Only the trigger differs: it is an absolutely-positioned layer the scrub
+      // moves, so its own rect can't say where it is — it fires instead at the
+      // scroll offset where THIS timeline puts its top edge on that same 80%
+      // line. Desktop's layer is as tall as the stage, so startFor covers it.
+      // The mobile strip is not, so its top sits at (100 − h) + yPercent·h
+      // percent of the stage; with yPercent running 100→0 across beat 2→3 that
+      // crosses the line at beat 2 + (100 − IN_VIEW_AT)/h. Measured live, so a
+      // different viewport or rewrapped CMS copy re-derives it on refresh.
+      const stripStart = () => {
+        const h = (footerRef.current.offsetHeight / stickyRef.current.offsetHeight) * 100
+        return atBeat(Math.min(3, 2 + (100 - IN_VIEW_AT) / h))()
+      }
+      revealFooterPanel(
+        [
+          footerTitleRef.current,
+          footerDescRef.current,
+          footerBtnRef.current,
+          footerAlcoveRef.current,
+        ],
+        sectionRef.current,
+        isDesktop ? startFor(100, 3 - riseDur, 3) : stripStart
+      )
     })
 
     return () => ctx.revert()
-  }, [isMobile])
+    // Nothing in here branches on the breakpoint any more, but the scale
+    // wrapper's sizing does, so a flip changes the stage geometry underneath
+    // these triggers — rebuild rather than rely on a refresh catching it.
+  }, [isDesktop])
 
   return (
     <>
@@ -433,8 +452,8 @@ function MissionVisionValues() {
             style={{
               transform: `scale(${scale})`,
               transformOrigin: 'top center',
-              width: scale >= 1 ? '100%' : `${100 / scale}%`,
-              marginLeft: scale >= 1 ? '0' : `${(100 - 100 / scale) / 2}%`,
+              width: isDesktop && scale >= 1 ? '100%' : `${100 / scale}%`,
+              marginLeft: isDesktop && scale >= 1 ? '0' : `${(100 - 100 / scale) / 2}%`,
               height: `${100 / scale}vh`,
             }}
           >
@@ -479,10 +498,10 @@ function MissionVisionValues() {
                   )
                 }
               />
-              {/* Desktop: navy footer is the final rising cover layer — same solid
-                full-panel treatment as the cards, one z-layer above Values.
-                On mobile it is rendered as a normal block after the stage. */}
-              {!isMobile && (
+              {/* Desktop: the navy footer is the final rising cover layer — same
+                solid full-panel treatment as the cards, one z-layer above
+                Values. Mobile renders its own strip outside this wrapper. */}
+              {isDesktop && (
                 <div
                   ref={footerRef}
                   style={{ zIndex: 40 }}
@@ -495,22 +514,46 @@ function MissionVisionValues() {
                       is full-bleed, while ContactFooterPanel keeps its capped,
                       centered content. */}
                   <div className="absolute inset-y-0 left-1/2 w-screen -translate-x-1/2 bg-navy" />
-                  <ContactFooterPanel cta={cta} fitMobile centerDesktop />
+                  <ContactFooterPanel
+                    cta={cta}
+                    fitMobile
+                    centerDesktop
+                    titleRef={footerTitleRef}
+                    descRef={footerDescRef}
+                    buttonRef={footerBtnRef}
+                    alcoveRef={footerAlcoveRef}
+                  />
                 </div>
               )}
             </div>
           </div>
+
+          {/* Mobile: the footer keeps the design's 553px frame and rides up over
+              the docked Values card as a strip pinned to the stage bottom —
+              rather than a fourth full-screen panel. It sits outside the scale
+              wrapper on purpose: the 553px and the panel's other mobile values
+              are authored in real pixels, and the wrapper's width/430 scale
+              would shrink them. */}
+          {!isDesktop && (
+            <div
+              ref={footerRef}
+              style={{ zIndex: 40 }}
+              className="absolute inset-x-0 bottom-0 h-[553px] will-change-transform"
+            >
+              <ContactFooterPanel
+                cta={cta}
+                fitMobile
+                fillMobile
+                centerDesktop
+                titleRef={footerTitleRef}
+                descRef={footerDescRef}
+                buttonRef={footerBtnRef}
+                alcoveRef={footerAlcoveRef}
+              />
+            </div>
+          )}
         </div>
       </section>
-
-      {/* Mobile: the footer is a normal fit-content block after the pinned
-          cinematic, so it is 553px tall (per the design) instead of a full-screen
-          cover. Desktop keeps it inside the stage as the rising cover above. */}
-      {isMobile && (
-        <div className="bg-navy">
-          <ContactFooterPanel cta={cta} fitMobile />
-        </div>
-      )}
     </>
   )
 }
