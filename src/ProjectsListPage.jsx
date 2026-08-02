@@ -2,6 +2,7 @@ import { useLayoutEffect, useRef, useState, useEffect, forwardRef } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { gsap } from 'gsap'
 import { cubicEase } from './easings'
+import { useRevealOnScroll } from './motion'
 import ContactSection from './ContactSection'
 import { ScaleLock } from './ScaleLock'
 import { useProjects } from './api'
@@ -94,7 +95,6 @@ function ProjectsListPage() {
 
   const headingRef = useRef(null)
   const listRef = useRef(null)
-  const rowsRef = useRef([])
 
   // Preview card refs (desktop mouse-follower)
   const cardWrapRef = useRef(null) // positioned via gsap.quickTo (translate)
@@ -130,8 +130,6 @@ function ProjectsListPage() {
   // miss the fade-in.
   const slugKey = projects.map((p) => p.slug).join('|')
 
-  rowsRef.current = []
-
   // Track the mobile breakpoint; collapse any open card when leaving mobile.
   useEffect(() => {
     const mq = window.matchMedia('(max-width: 767px)')
@@ -145,22 +143,24 @@ function ProjectsListPage() {
     if (!isMobile) setOpenIndex(null)
   }, [isMobile])
 
-  // Entrance animation for heading + rows
+  // Entrance animation for the heading. The rows below reveal one by one on
+  // scroll instead (see revealRef) — animating them on mount meant every row
+  // past the fold had already finished by the time it was scrolled into view.
   useLayoutEffect(() => {
     const ctx = gsap.context(() => {
-      const rows = rowsRef.current.filter(Boolean)
-      gsap.set([headingRef.current, ...rows], { y: 60, opacity: 0 })
-      gsap.to([headingRef.current, ...rows], {
+      gsap.set(headingRef.current, { y: 60, opacity: 0 })
+      gsap.to(headingRef.current, {
         y: 0,
         opacity: 1,
         duration: 1.2,
         ease: cubicEase,
-        stagger: 0.08,
         delay: 0.15,
       })
     })
     return () => ctx.revert()
   }, [slugKey])
+
+  const revealRef = useRevealOnScroll([slugKey])
 
   // Position follower setup + hidden initial state for the card (desktop only)
   useLayoutEffect(() => {
@@ -352,7 +352,10 @@ function ProjectsListPage() {
 
         {/* Project list */}
         <ul
-          ref={listRef}
+          ref={(el) => {
+            listRef.current = el
+            revealRef.current = el
+          }}
           onMouseMove={isMobile ? undefined : handleMove}
           onMouseLeave={isMobile ? undefined : () => setActive(null)}
           className="mt-[80px] md:mt-[110px] list-none p-0 m-0"
@@ -367,9 +370,9 @@ function ProjectsListPage() {
               <li
                 key={p.slug}
                 ref={(el) => {
-                  if (el) rowsRef.current.push(el)
                   rowElRefs.current[i] = el
                 }}
+                data-reveal
                 className="list-none"
               >
                 <div

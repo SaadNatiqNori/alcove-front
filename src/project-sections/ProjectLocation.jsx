@@ -142,9 +142,10 @@ function ProjectLocation({ title = 'Location', items = [] }) {
               ILLUSTRATIONS[item.illustration ?? ILLUSTRATION_KEYS[i % 3]]
             return (
               <div key={item.label} data-loc-item className="border-b border-white/12">
+                {/* One item is always open — clicking the open tab is a no-op. */}
                 <button
                   type="button"
-                  onClick={() => setOpen(isOpen ? -1 : i)}
+                  onClick={() => setOpen(i)}
                   aria-expanded={isOpen}
                   className="flex w-full items-center justify-between gap-6 pt-5 pb-5 text-left"
                 >

@@ -7,6 +7,15 @@ import logo from './assets/Logo.svg'
 // the optional refs) and the home page's MissionVisionValues stack (rendered
 // static as a rising cover layer, so the refs are omitted).
 //
+// The mobile ALCOVE wordmark is shared with the hero (HeroSustainable), which
+// authors its mobile canvas at a 430px reference and scales it by width/430.
+// The footer has no such wrapper, so it reproduces the same result directly:
+// 75px tall at 430px+ and 75 × width/430 below it (17.4419vw), height-driven
+// with the mask contained and centred — which also fixes the ink width, so both
+// wordmarks land at the same size and the same centre line. The matching
+// min(40px, 9.3023vw) bottom gap is on mainClass.
+const MOBILE_ALCOVE = 'max-md:aspect-auto max-md:[height:min(75px,17.4419vw)]'
+
 // fitMobile: on interior pages the footer is a normal-flow section, so below
 // the md breakpoint it collapses to a fit-content block (natural padding, a
 // fixed gap above ALCOVE) instead of the full 100vh desktop canvas. The home
@@ -52,21 +61,22 @@ function ContactFooterPanel({
   // 13vh rhythm and the 150/scale lock padding are untouched.
   const mainStyle =
     !centerDesktop && lockScale ? { paddingTop: `${150 / scale}px` } : undefined
-  // Mobile spec (≈402×553 fit-content frame): 23px text inset, 116px top pad,
-  // 97.4px gap from the button down to the ALCOVE mask, 118px from the mask to
-  // the container bottom. The mask breaks 7px past the 23px inset each side so
-  // it lands ~370px wide (near full-bleed) instead of matching the text column.
+  // Mobile spec (≈402×553 fit-content frame): 16px text inset, 116px top pad,
+  // 97.4px gap from the button down to the ALCOVE mask. The wordmark itself is
+  // the shared mobile treatment described on MOBILE_ALCOVE below — same size,
+  // centring and bottom gap as the hero's (see HeroSustainable), so the two
+  // wordmarks read as one element across the page.
   const mainClass = centerDesktop
-    ? 'relative h-auto md:h-full max-w-[1440px] mx-auto flex flex-col bg-navy px-[16px] pb-[113px] pt-[111px] text-mist md:px-8 md:pb-[31px] md:pt-0'
+    ? 'relative h-auto md:h-full max-w-[1440px] mx-auto flex flex-col bg-navy px-[16px] max-md:[padding-bottom:min(40px,9.3023vw)] pt-[111px] text-mist md:px-8 md:pb-[31px] md:pt-0'
     : fitMobile
-      ? 'relative h-auto md:h-full max-w-[1440px] mx-auto flex flex-col bg-navy px-[16px] pb-[113px] pt-[111px] text-mist md:px-8 md:pb-[31px] md:pt-[150px]'
+      ? 'relative h-auto md:h-full max-w-[1440px] mx-auto flex flex-col bg-navy px-[16px] max-md:[padding-bottom:min(40px,9.3023vw)] pt-[111px] text-mist md:px-8 md:pb-[31px] md:pt-[150px]'
       : 'relative h-full max-w-[1440px] mx-auto flex flex-col bg-navy px-4 pb-[31px] pt-[150px] text-mist md:px-8'
   // Desktop rhythm for the interior section is driven by the two spacers below,
   // so the ALCOVE wrapper drops its own md gap (mt-0); mobile keeps mt-[97.4px].
   const alcoveWrapClass = centerDesktop
-    ? 'relative mt-[97.4px] mx-[-7px] md:mt-0 md:mx-0'
+    ? 'relative mt-[97.4px] md:mt-0'
     : fitMobile
-      ? 'relative mt-[97.4px] mx-[-7px] md:mt-[13vh] md:mx-0'
+      ? 'relative mt-[97.4px] md:mt-[13vh]'
       : 'relative mt-auto'
   // Bottom spacer (md+ only): grows equally with the top spacer to centre the
   // block, but never drops below 156px. The floor is ÷scale because the spacer
@@ -135,7 +145,7 @@ function ContactFooterPanel({
       <div className={alcoveWrapClass}>
         <div
           ref={alcoveRef}
-          className="w-full aspect-[64/13]"
+          className={`w-full aspect-[64/13] ${MOBILE_ALCOVE}`}
           style={{
             WebkitMaskImage: `url("${logo}")`,
             maskImage: `url("${logo}")`,

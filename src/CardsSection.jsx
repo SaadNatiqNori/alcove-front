@@ -96,8 +96,9 @@ function CardsSection() {
   cardContentRefs.current = []
   cardLineRefs.current = []
 
-  // Choreography: the word-rise entrance plays once as the section scrolls in,
-  // so the description is readable the moment the user arrives. A tall outer
+  // Choreography: the paragraph's line-by-line entrance plays once as the
+  // section scrolls in, so the description is readable — and its arrival
+  // actually witnessed — by the time the user gets here. A tall outer
   // section then holds a `sticky top-0 h-screen` wrapper in place while the
   // rest — non-accent dissolve, accent words flying into the card titles,
   // lines/descriptions growing in — is scrubbed by scroll. Scrolling back
@@ -107,14 +108,22 @@ function CardsSection() {
   useLayoutEffect(() => {
     const sectionEl = sectionRef.current
     const stickyEl = stickyRef.current
-    const allWordEls = wordRefs.current.filter(Boolean)
+    // Deduped: the push-based ref collectors are reset during render, but React
+    // can detach and re-attach refs without re-rendering (StrictMode does this
+    // on mount), which appends a second copy of every node. A Set keeps the
+    // first occurrence of each, in document order. Without it the paragraph's
+    // 41 words arrive as 82 entries and the line grouping below sees each
+    // visual line twice — two sets of entrance tweens fighting over the same
+    // spans, at two different line indices.
+    const unique = (els) => [...new Set(els.filter(Boolean))]
+    const allWordEls = unique(wordRefs.current)
     const accentEls = Object.values(accentWordMap.current).filter(Boolean)
     const nonAccentEls = allWordEls.filter((el) => !accentEls.includes(el))
     const heroEl = heroTextRef.current
     const cardsEl = cardsContainerRef.current
     const titleEls = Object.values(cardTitleRefs.current).filter(Boolean)
-    const contentEls = cardContentRefs.current.filter(Boolean)
-    const lineEls = cardLineRefs.current.filter(Boolean)
+    const contentEls = unique(cardContentRefs.current)
+    const lineEls = unique(cardLineRefs.current)
 
     if (!sectionEl || !stickyEl || !allWordEls.length) return
 
@@ -142,10 +151,6 @@ function CardsSection() {
         // copy of the gold words over the first.
         stickyEl.querySelectorAll('[data-flight-clone]').forEach((c) => c.remove())
 
-        // yPercent:100 drops each word its own height below the overflow mask;
-        // an extra 2px covers a sub-pixel/descender sliver that peeks through the
-        // clip. The entrance rises both back to 0.
-        gsap.set(allWordEls, { yPercent: 100, y: 2 })
         gsap.set(cardsEl, { autoAlpha: 0 })
         gsap.set(titleEls, { opacity: 0 })
         gsap.set(contentEls, { autoAlpha: 0, y: 20 })
@@ -166,25 +171,12 @@ function CardsSection() {
           lines[lines.length - 1].push(el)
         })
 
-        // Entrance stays a single timeline so the scrub's `entrance.progress(1)`
-        // snap-to-settled (onEnter/onUpdate) keeps working. All lines rise from
-        // their masks together — no inter-line stagger.
-        const entrance = gsap.timeline({
-          scrollTrigger: {
-            trigger: sectionEl,
-            start: 'top bottom',
-            toggleActions: 'play none none none',
-          },
-        })
-        lines.forEach((line) => {
-          entrance.to(line, { yPercent: 0, y: 0, duration: 1.1, ease: cubicEase }, 0)
-        })
-
-        // Flight geometry, measured up front (fonts are loaded by now). The
-        // overflow wrappers are untransformed, so their rects give the words'
-        // settled positions even while the entrance still holds them shifted.
-        // Offsets are relative to the sticky wrapper (where the clones live),
-        // so they stay valid as it sticks — the outer section scrolls past.
+        // Flight geometry, measured up front (fonts are loaded by now) and
+        // before the entrance below applies its start state — the desktop
+        // entrance transforms the overflow wrappers, whose rects this reads for
+        // the words' settled positions. Offsets are relative to the sticky wrapper
+        // (where the clones live), so they stay valid as it sticks — the outer
+        // section scrolls past.
         const stickyRect = stickyEl.getBoundingClientRect()
         const flights = CARDS.map((card) => {
           const accentEl = accentWordMap.current[card.title]
@@ -230,14 +222,85 @@ function CardsSection() {
           }
         }).filter(Boolean)
 
-        const FLY = 0.8
+        // The entrance is the one piece of this choreography that differs by
+        // width; everything after it is shared. Kept as a single timeline
+        // either way so the scrub's `entrance.progress(1)` snap-to-settled
+        // keeps working.
+        const wide = window.matchMedia('(min-width: 768px)').matches
+
+        const entrance = gsap.timeline({
+          scrollTrigger: {
+            // Desktop triggers off the paragraph, not the section. The section
+            // is ~2 viewports tall and the copy is centred in its sticky
+            // wrapper, so any percentage measured against the section leaves
+            // the paragraph parked at opacity 0 for most of its travel up the
+            // screen — a blank navy field where the text plainly already is.
+            // Hanging the trigger on the copy itself makes the start mean the
+            // one thing that matters: fire the instant the paragraph reaches
+            // the viewport, so no part of it is ever on screen unlit. That
+            // holds at any viewport height, with no magic number tied to this
+            // section's geometry. It lands ~50vh of scroll before the copy is
+            // fully in view, which is enough for the tween to be well along by
+            // the time it's centred and settled before the pin.
+            //
+            // Mobile stays on the section at 'top bottom' — a full viewport of
+            // run-up. Its copy wraps to ~12 lines, so the entrance runs ~1.8s
+            // and needs the room; anything later lets `syncToScrub` snap a
+            // barely-started paragraph to visible and dissolve it in the same
+            // breath, which reads as a flash.
+            trigger: wide ? heroEl : sectionEl,
+            start: 'top bottom',
+            toggleActions: 'play none none none',
+          },
+        })
+
+        if (wide) {
+          // The paragraph's leading opens wide, then closes back to normal as
+          // each line fades in. Line 0 already sits at its settled position, so
+          // it only fades; every line below starts pushed down by a gap that
+          // grows with depth and closes as the tween plays, which reads as a
+          // slide-up. Expressing the collapse as a transform (rather than
+          // tweening line-height) keeps it off the layout path — no per-frame
+          // reflow, and the word wrapping the flight geometry above depends on
+          // can never shift mid-animation.
+          //
+          // The tween runs on the overflow WRAPPERS, not the word spans inside
+          // them: nothing clips the wrappers, so the rise reads as travel
+          // rather than a reveal from behind the line. The spans stay free for
+          // the scroll dissolve below, which needs the wrapper's clip.
+          const GAP = parseFloat(window.getComputedStyle(allWordEls[0]).fontSize) * 0.3
+          lines.forEach((line, i) => {
+            entrance.fromTo(
+              line.map((el) => el.parentElement),
+              { opacity: 0, y: i * GAP },
+              { opacity: 1, y: 0, duration: 1.15, ease: cubicEase },
+              i * 0.06
+            )
+          })
+        } else {
+          // Mobile keeps the original masked word-rise. yPercent:100 drops each
+          // word its own height below its overflow mask; an extra 2px covers a
+          // sub-pixel/descender sliver that peeks through the clip. All lines
+          // rise together — no inter-line stagger, so nothing here scales with
+          // the line count.
+          gsap.set(allWordEls, { yPercent: 100, y: 2 })
+          lines.forEach((line) => {
+            entrance.to(line, { yPercent: 0, y: 0, duration: 1.1, ease: cubicEase }, 0)
+          })
+        }
+
+        // Pre-roll before the gold words fly. Kept short so the section reacts
+        // almost immediately once it pins — by then the entrance has played and
+        // the description has been readable, so any extra hold here just reads
+        // as a dead zone.
+        const FLY = 0.3
 
         // The white words dissolve on their own clock, not the scroll's —
         // scrubbing them shows half-clipped glyphs tracking the wheel. The
         // first scroll inside the sticky range dissolves them; returning to
         // its start brings them back. Explicit to-tweens with overwrite (rather
         // than one reversed tween) because fully reversing a from/fromTo
-        // reverts to pre-tween inline values — the entrance's offscreen state.
+        // reverts to pre-tween inline values rather than the settled state.
         let dissolved = false
         const setDissolved = (on) => {
           if (on === dissolved) return
@@ -255,32 +318,39 @@ function CardsSection() {
           })
         }
 
+        // How far into the sticky range (0..1) the user scrolls before the
+        // description starts to dissolve. Small on purpose: the copy has been
+        // on screen since the section entered, so waiting here just makes the
+        // section feel unresponsive. Past it the entrance is forced to settled
+        // first — the paragraph must not still be fading in as it dissolves.
+        const syncToScrub = (self) => {
+          if (self.progress > 0.04) {
+            entrance.progress(1)
+            setDissolved(true)
+          } else {
+            setDissolved(false)
+          }
+        }
+
         const tl = gsap.timeline({
           defaults: { ease: cubicEase },
           scrollTrigger: {
             // The outer section is taller than the viewport, so the sticky
             // wrapper stays put from 'top top' until 'bottom bottom' — the
-            // scrub spans that travel (250vh - 100vh = 150vh desktop, 100vh
+            // scrub spans that travel (220vh - 100vh = 120vh desktop, 80vh
             // mobile). The section height carries the desktop/mobile split.
             trigger: sectionEl,
             start: 'top top',
             end: 'bottom bottom',
             scrub: 1,
-            // A fast scroller can reach the sticky range mid-entrance; hand the words
-            // over to the scrub settled so the two tweens don't fight.
-            onEnter: () => entrance.progress(1),
-            onUpdate: (self) => {
-              // How far into the sticky range (0..1) the user scrolls before
-              // the description starts to dissolve.
-              if (self.progress > 0.13) {
-                // The entrance must be settled before the dissolve touches
-                // the same words, or the two tweens trade renders.
-                entrance.progress(1)
-                setDissolved(true)
-              } else {
-                setDissolved(false)
-              }
-            },
+            // Position-aware rather than an onEnter snap: merely reaching the
+            // pin no longer cuts the entrance short, so a fast scroller gets to
+            // watch it finish on screen. It's forced to settled only where the
+            // dissolve actually starts. Also runs on refresh, so a rebuild
+            // while the user is already deep in the section lands settled+
+            // dissolved instead of replaying the entrance over dissolved copy.
+            onRefresh: (self) => syncToScrub(self),
+            onUpdate: (self) => syncToScrub(self),
           },
         })
 
@@ -380,7 +450,7 @@ function CardsSection() {
   return (
     <section
       ref={sectionRef}
-      className="relative w-full h-[200vh] md:h-[250vh] bg-navy"
+      className="relative w-full h-[180vh] md:h-[220vh] bg-navy"
       aria-label="Subsidiaries"
     >
       <div

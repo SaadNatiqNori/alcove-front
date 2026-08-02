@@ -82,12 +82,10 @@ function ProjectFeatures({ groups = [] }) {
                     className="grid grid-cols-1 justify-between gap-2 border-b border-[#1C1F2A] pt-[28px] pb-[28px] first:pt-0 md:grid-cols-[minmax(0,1.15fr)_minmax(0,1fr)] md:gap-12 md:pt-[46px] md:pb-[46px] md:first:pt-0"
                   >
                     <h3
-                      className="group m-0 self-center text-[24px] md:text-[38px] font-normal leading-[1.15] tracking-[-0.02em] text-[#1C1F2A]"
+                      className="m-0 self-center text-[24px] md:text-[38px] font-normal leading-[1.15] tracking-[-0.02em] text-[#1C1F2A]"
                       style={{ textBoxTrim: 'trim-both', textBoxEdge: 'cap alphabetic' }}
                     >
-                      <span className="cursor-default decoration-[#5B8DBF] decoration-2 underline-offset-[10px] transition-all duration-200 group-hover:underline">
-                        {row.feature}
-                      </span>
+                      {row.feature}
                     </h3>
                     <p
                       className="m-0 w-full self-center text-[13px] leading-[1.4] tracking-[0] text-[#5A6472] md:ml-auto md:max-w-[312px] md:text-[18px] md:leading-[1.2] pt-[6px] md:pt-0"

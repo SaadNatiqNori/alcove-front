@@ -1,12 +1,13 @@
-import { useRef, useState, useEffect, useLayoutEffect } from 'react'
+import { useRef, useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
 import { gsap } from 'gsap'
 import { ScrollTrigger } from 'gsap/ScrollTrigger'
 import ArrowIcon from './ArrowIcon'
-import { cubicEase } from './easings'
+import { useRevealOnScroll } from './motion'
 import { useProjects, useContent } from './api'
 import { PROJECTS_DATA } from './projects'
 import { MAX_SCALE } from './useScale'
+import { useLenis } from './SmoothScroll'
 
 gsap.registerPlugin(ScrollTrigger)
 
@@ -205,6 +206,7 @@ function PortfolioSlider() {
     mq.addEventListener('change', onChange)
     return () => mq.removeEventListener('change', onChange)
   }, [])
+  const lenis = useLenis()
   const home = useContent('home', { portfolio: PORTFOLIO_FALLBACK })
   const portfolio = home.portfolio ?? PORTFOLIO_FALLBACK
   // Cards are the CRUD projects flagged "Show on home portfolio". Fall back to
@@ -214,11 +216,18 @@ function PortfolioSlider() {
   const projects = featured.length ? featured : allProjects
   const sectionRef = useRef(null)
   const scrollRef = useRef(null)
-  const introRef = useRef(null)
-  const cardRefs = useRef([])
   const progressFillRef = useRef(null)
+  // Set by the soft-lock effect; called by the drag so grabbing the cards
+  // mid-glide takes them over instead of fighting the lerp still running.
+  const cancelGlideRef = useRef(null)
 
-  cardRefs.current = []
+  // Intro + cards reveal one by one. Desktop lays the cards out as a horizontal
+  // slider inside a single viewport, so they stagger off the section's trigger;
+  // mobile stacks them vertically, so each card waits for its own scroll-in.
+  const revealRef = useRevealOnScroll(
+    [projects.map((p) => p.slug).join('|'), isMobile],
+    { each: isMobile }
+  )
 
   // Size each card to hug its own cover image: draw the image at a fixed height
   // so its width is the natural aspect, then set the card width to that image
@@ -271,31 +280,21 @@ function PortfolioSlider() {
     el.addEventListener('scroll', handleScroll, { passive: true })
     paint()
 
-    // Drag-to-scroll (mouse) with inertia. Touch/trackpad keep native scrolling.
+    // Drag-to-scroll (mouse). The cards stop where they are let go — no inertia
+    // carrying them on past the release. Touch/trackpad keep native scrolling.
     let isDown = false
     let moved = false
     let dragScale = 1
     let startX = 0
     let startScrollLeft = 0
-    let lastX = 0
-    let lastT = 0
-    let velocity = 0 // local px per ms; scrollLeft moves opposite the cursor
-    let momentumId = 0
-
-    const stopMomentum = () => {
-      if (momentumId) cancelAnimationFrame(momentumId)
-      momentumId = 0
-    }
 
     const onPointerDown = (e) => {
       if (e.pointerType !== 'mouse') return
-      stopMomentum()
+      cancelGlideRef.current?.()
       isDown = true
       moved = false
-      startX = lastX = e.clientX
+      startX = e.clientX
       startScrollLeft = el.scrollLeft
-      lastT = e.timeStamp
-      velocity = 0
       // The section is CSS-scaled (.scale-wrapper); convert cursor pixels into
       // the element's own pixels so the cards track the cursor 1:1.
       dragScale = el.getBoundingClientRect().width / el.offsetWidth || 1
@@ -309,40 +308,18 @@ function PortfolioSlider() {
       const dxTotal = (e.clientX - startX) / dragScale
       if (Math.abs(dxTotal) > 4) moved = true
       el.scrollLeft = startScrollLeft - dxTotal
-      const dt = e.timeStamp - lastT
-      if (dt > 0) {
-        velocity = -((e.clientX - lastX) / dragScale) / dt
-        lastX = e.clientX
-        lastT = e.timeStamp
-      }
     }
 
     const endDrag = () => {
       if (!isDown) return
       isDown = false
       el.style.cursor = ''
-      // Glide on release, decaying the velocity, instead of stopping dead — this
-      // is what makes the release feel smooth rather than abrupt/janky.
-      const maxScroll = el.scrollWidth - el.clientWidth
-      let prev = performance.now()
-      const glide = (now) => {
-        const dt = now - prev
-        prev = now
-        velocity *= Math.pow(0.95, dt / 16) // frame-rate independent friction
-        el.scrollLeft += velocity * dt
-        if (el.scrollLeft <= 0 || el.scrollLeft >= maxScroll) velocity = 0
-        momentumId = Math.abs(velocity) > 0.02 ? requestAnimationFrame(glide) : 0
-      }
-      if (Math.abs(velocity) > 0.02) momentumId = requestAnimationFrame(glide)
     }
 
     // Horizontal wheel / trackpad swipe: keep it as a native horizontal scroll
     // and stop the page's full-screen section navigation from hijacking it.
     const onWheel = (e) => {
-      if (Math.abs(e.deltaX) > Math.abs(e.deltaY)) {
-        stopMomentum()
-        e.stopPropagation()
-      }
+      if (Math.abs(e.deltaX) > Math.abs(e.deltaY)) e.stopPropagation()
     }
 
     // Swallow the click that ends a drag so it doesn't trigger the card's Link,
@@ -365,7 +342,6 @@ function PortfolioSlider() {
     el.addEventListener('click', onClickCapture, true)
 
     return () => {
-      stopMomentum()
       el.removeEventListener('scroll', handleScroll)
       el.removeEventListener('pointerdown', onPointerDown)
       window.removeEventListener('pointermove', onPointerMove)
@@ -376,28 +352,159 @@ function PortfolioSlider() {
     }
   }, [])
 
-  useLayoutEffect(() => {
+  // Soft-lock. Once the section comes flush with the viewport, the page stops
+  // moving and the scroll drives the card track sideways instead — so the
+  // portfolio is always crossed end to end. It is symmetric: scrolling down runs
+  // the cards left and releases at the far end, scrolling back up runs them
+  // right and releases at the start. The section is only held while the track
+  // still has somewhere to go in the direction being scrolled, so nothing here
+  // pins or lengthens the page — the hold is just the wheel event being
+  // swallowed before Lenis (which listens on window) can see it.
+  useEffect(() => {
+    if (isMobile) return
     const sectionEl = sectionRef.current
-    const cards = cardRefs.current.filter(Boolean)
+    const el = scrollRef.current
+    if (!sectionEl || !el) return
 
-    const ctx = gsap.context(() => {
-      gsap.set([introRef.current, ...cards], { y: 80, opacity: 0 })
+    // scrollWidth and clientWidth are rounded integers, but the track's real
+    // maximum scrollLeft is fractional — the section sits inside a scale()
+    // transform, so its layout widths are not whole pixels. Their difference
+    // therefore OVERSTATES the reachable end, by 2.5px at 1512px wide and by a
+    // different amount at every other width. Treating it as the release
+    // threshold leaves the page locked on a position the track can never reach,
+    // so it is only a starting estimate: the moment the track is seen to
+    // saturate, that position is recorded as the true end and used from then on.
+    const estimatedMax = () => Math.max(0, el.scrollWidth - el.clientWidth)
+    let knownMax = null
+    let knownMaxFor = 0 // the estimate that was current when knownMax was learned
+    const endOfTrack = () => {
+      const estimate = estimatedMax()
+      // A late-loading cover image or a window resize changes the card widths,
+      // and with them the end of the track — so a learned end is only trusted
+      // while the estimate it was learned against still holds.
+      if (knownMax != null && knownMaxFor === estimate) return knownMax
+      knownMax = null
+      return estimate
+    }
 
-      gsap.to([introRef.current, ...cards], {
-        y: 0,
-        opacity: 1,
-        duration: 1.4,
-        ease: cubicEase,
-        scrollTrigger: {
-          trigger: sectionEl,
-          start: 'top 80%',
-          toggleActions: 'restart none restart reset',
-        },
-      })
-    })
+    let didAlign = false
+    let target = el.scrollLeft
+    let rafId = 0
+    let lastT = 0
 
-    return () => ctx.revert()
-  }, [])
+    // Gentle enough that the cards trail the gesture and settle rather than
+    // tracking it rigidly. Roughly Lenis's own lerp, so the horizontal glide
+    // and the page's vertical scroll read as the same motion.
+    const LERP = 0.085
+
+    // The wheel writes to `target` and a lerp walks scrollLeft toward it, so the
+    // cards glide under the gesture rather than stepping once per wheel event.
+    const step = (now) => {
+      const dt = lastT ? Math.min(now - lastT, 50) : 1000 / 60
+      lastT = now
+      const dist = target - el.scrollLeft
+      if (Math.abs(dist) < 0.5) {
+        el.scrollLeft = target
+        rafId = 0
+        lastT = 0
+        return
+      }
+      // Scaled by elapsed time, so the glide lasts the same on a 60Hz and a
+      // 120Hz display instead of running twice as fast on the latter.
+      const before = el.scrollLeft
+      el.scrollLeft += dist * (1 - Math.pow(1 - LERP, dt / (1000 / 60)))
+      if (el.scrollLeft === before) {
+        // Nothing moved, for one of two reasons: the easing step was finer than
+        // the device pixel grid can represent, or the track is against a bound.
+        // Asking for the whole remaining distance tells them apart — and left
+        // alone either one spins forever, since a track that cannot move fires
+        // no scroll event to correct the aim.
+        el.scrollLeft = target
+        if (el.scrollLeft === before && dist > 0) {
+          // Genuinely against the right-hand bound, so this is the real end of
+          // the track — the figure that releases the page.
+          knownMax = el.scrollLeft
+          knownMaxFor = estimatedMax()
+        }
+        target = el.scrollLeft
+        rafId = 0
+        lastT = 0
+        return
+      }
+      rafId = requestAnimationFrame(step)
+    }
+
+    const onWheel = (e) => {
+      // Horizontal-dominant gestures are the existing swipe — the track's own
+      // handler stops those before they reach here, but guard anyway.
+      if (Math.abs(e.deltaX) > Math.abs(e.deltaY)) return
+      if (!e.deltaY) return
+      const end = endOfTrack()
+      if (end <= 0) return
+
+      const down = e.deltaY > 0
+      // The track has nothing left to give in the direction being scrolled, so
+      // the page is free to carry on past the section. Measured on `target`
+      // rather than the live scrollLeft: the lerp trails the gesture by design,
+      // and waiting for it to land would hold the page for a beat after the
+      // cards have already been scrolled to the end.
+      if (down ? target >= end - 1 : target <= 1) {
+        didAlign = false
+        return
+      }
+
+      // Hold only once the section has come flush with the viewport from the
+      // side being approached — going down that means its top has reached the
+      // top of the screen, coming up it means it has fallen back to meet it.
+      // Before that the section is still sliding in and the page should move.
+      // Past half a screen it is more gone than present, and hauling it back
+      // would read as the scroll jamming, so let a fast flick through win.
+      const rect = sectionEl.getBoundingClientRect()
+      if (down ? rect.top > 0 : rect.top < 0) {
+        didAlign = false
+        return
+      }
+      if (Math.abs(rect.top) > window.innerHeight / 2) return
+
+      e.preventDefault()
+      e.stopPropagation()
+
+      // Lenis can carry the page past the flush point between frames; ease back
+      // once per engage so the held section sits exactly in the viewport.
+      if (!didAlign && Math.abs(rect.top) > 1) {
+        didAlign = true
+        const y = window.scrollY + rect.top
+        if (lenis) lenis.scrollTo(y, { duration: 0.4 })
+        else window.scrollTo({ top: y, behavior: 'smooth' })
+      }
+
+      target = Math.min(end, Math.max(0, target + e.deltaY))
+      if (!rafId) rafId = requestAnimationFrame(step)
+    }
+
+    // Resync the lerp's aim after anything else moves the track (a drag, a
+    // trackpad swipe), so it doesn't jump back to a stale spot on the next
+    // wheel tick. Skipped mid-lerp, when this effect is the one scrolling.
+    const onScroll = () => {
+      if (!rafId) target = el.scrollLeft
+    }
+
+    cancelGlideRef.current = () => {
+      if (rafId) cancelAnimationFrame(rafId)
+      rafId = 0
+      lastT = 0
+      target = el.scrollLeft
+    }
+
+    el.addEventListener('scroll', onScroll, { passive: true })
+    sectionEl.addEventListener('wheel', onWheel, { passive: false })
+    return () => {
+      cancelGlideRef.current = null
+      el.removeEventListener('scroll', onScroll)
+      sectionEl.removeEventListener('wheel', onWheel)
+      if (rafId) cancelAnimationFrame(rafId)
+    }
+  }, [isMobile, lenis])
 
   // "CHECK ALL" pill — the same button in two spots: bottom of the intro column
   // on desktop, and top-right beside the heading on mobile (per the mobile
@@ -436,7 +543,10 @@ function PortfolioSlider() {
             viewport edge so the cards aren't cut short of it. */}
         <main className="relative h-full max-w-[1440px] mx-auto flex flex-col justify-start md:justify-center bg-[#E6EBF0] pt-[88px] pb-14 text-[#1C2D4F] md:pt-[120px] md:pb-10">
           <div
-            ref={scrollRef}
+            ref={(el) => {
+              scrollRef.current = el
+              revealRef.current = el
+            }}
             data-horizontal-scroll
             className="flex flex-col md:flex-row items-stretch gap-4 md:gap-2 px-4 md:pl-[38px] md:pr-2 md:overflow-x-auto md:overflow-y-hidden md:cursor-grab select-none [&::-webkit-scrollbar]:hidden"
             style={{
@@ -456,7 +566,7 @@ function PortfolioSlider() {
           >
             {/* mr + the row's gap-2 (8px) = the 227.5px intro-to-cards gap */}
             <div
-              ref={introRef}
+              data-reveal
               className="flex-shrink-0 w-full md:w-[240px] flex flex-col gap-6 md:gap-[30px] py-4 md:mr-[219.5px]"
             >
               {/* On mobile the heading and CTA share the top row; on desktop the
@@ -485,9 +595,7 @@ function PortfolioSlider() {
             {projects.map((project, i) => (
               <article
                 key={project.slug}
-                ref={(el) => {
-                  if (el) cardRefs.current.push(el)
-                }}
+                data-reveal
                 className="flex-shrink-0 w-full md:w-[496px] bg-navy px-6 py-8 md:px-[38px] md:py-10 flex flex-col gap-10 md:gap-[70px] text-mist"
               >
                 <div>

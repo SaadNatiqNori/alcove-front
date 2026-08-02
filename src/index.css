@@ -143,6 +143,16 @@ html.lenis body {
     min-height: 100vh;
   }
 
+  /* The document backdrop is what Safari tints its status/tab bars with when it
+     samples the page instead of using theme-color, and what shows through when
+     iOS rubber-bands past either end. Left unset it resolves dark on a
+     dark-appearance device — hence mist here, and the light-only scheme. */
+  html,
+  body {
+    color-scheme: light;
+    background-color: var(--color-mist);
+  }
+
   html.lenis,
   html.lenis body {
     height: auto;
