@@ -5,6 +5,7 @@ import { IoArrowBack, IoArrowForward } from 'react-icons/io5'
 import { cubicEase } from '../easings'
 import { prefersReducedMotion } from './motion'
 import { ScaleLock } from '../ScaleLock'
+import { DESKTOP_MIN } from '../breakpoints'
 
 gsap.registerPlugin(ScrollTrigger)
 
@@ -28,10 +29,10 @@ function ProjectGallery({
   // Mobile uses a near-full-width card (16px gutters) instead of the centred
   // 64vw peek-carousel, so the slide width differs by breakpoint.
   const [isDesktop, setIsDesktop] = useState(
-    () => typeof window !== 'undefined' && window.matchMedia('(min-width: 768px)').matches
+    () => typeof window !== 'undefined' && window.matchMedia(`(min-width: ${DESKTOP_MIN}px)`).matches
   )
   useEffect(() => {
-    const mq = window.matchMedia('(min-width: 768px)')
+    const mq = window.matchMedia(`(min-width: ${DESKTOP_MIN}px)`)
     const update = () => setIsDesktop(mq.matches)
     mq.addEventListener('change', update)
     return () => mq.removeEventListener('change', update)

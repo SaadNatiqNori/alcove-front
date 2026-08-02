@@ -9,6 +9,7 @@ import logoYellow from './assets/LogoYellow.svg'
 import { cubicEase } from './easings'
 import { useRevealOnScroll, prefersReducedMotion, REVEAL } from './motion'
 import { useContent } from './api'
+import { DESKTOP_MIN } from './breakpoints'
 
 const SUBS_FALLBACK = {
   title: 'Subsidiaries',
@@ -117,7 +118,11 @@ function PropertiesIcon() {
 function SubsidiaryCard({ icon, title, description }) {
   return (
     <div
-      className="flex flex-col rounded-[4px] p-[24px] md:p-[38px] w-full max-w-[429px]"
+      // mx-auto centres the card whenever its cell is wider than the 429px cap.
+      // A no-op on phones (the cell is narrower than the cap) and on desktop
+      // (the cell is exactly 429px); it only bites on the tablet canvas, where
+      // the single-column cell is 528px and the card would otherwise sit left.
+      className="flex flex-col rounded-[4px] p-[24px] md:p-[38px] w-full max-w-[429px] mx-auto"
       style={{ background: '#FFFFFF05' }}
     >
       <div className="h-[19px] md:h-[28px] flex items-center">{icon}</div>
@@ -188,7 +193,7 @@ function SubsidiariesPage() {
   useLayoutEffect(() => {
     if (!spineRef.current || prefersReducedMotion()) return
     const mm = gsap.matchMedia()
-    mm.add('(min-width: 768px)', () => {
+    mm.add(`(min-width: ${DESKTOP_MIN}px)`, () => {
       gsap.from(spineRef.current, {
         opacity: 0,
         y: REVEAL.y,

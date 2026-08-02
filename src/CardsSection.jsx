@@ -1,10 +1,11 @@
-import { useLayoutEffect, useRef, useState, useEffect } from 'react'
+import { useLayoutEffect, useRef } from 'react'
 import { gsap } from 'gsap'
 import { ScrollTrigger } from 'gsap/ScrollTrigger'
 import logoYellow from './assets/LogoYellow.svg'
 import { cubicEase } from './easings'
 import { useContent } from './api'
-import { MAX_SCALE } from './useScale'
+import { useScale, useIsDesktop } from './useScale'
+import { DESKTOP_QUERY } from './breakpoints'
 
 gsap.registerPlugin(ScrollTrigger)
 
@@ -27,45 +28,9 @@ const INTRO_FALLBACK = {
   ],
 }
 
-function useScale(referenceWidth = 1440, mobileReferenceWidth = 430) {
-  // Below 768px the mobile layout is authored for a 430px-wide reference
-  // (iPhone 14 Pro Max). Scaling by width/430 — capped at 1 so 430px+ stays
-  // pixel-identical to the design — shrinks the whole section uniformly on
-  // narrower phones so the intro copy and cards keep their proportions instead
-  // of reflowing/overflowing. The flight geometry below already mirrors `scale`,
-  // so the word-to-title animation stays correct at any mobile scale.
-  const mobileScale = (width) => Math.min(1, width / mobileReferenceWidth)
-
-  const [state, setState] = useState(() => {
-    if (typeof window !== 'undefined') {
-      const width = window.innerWidth
-      const dpr = window.devicePixelRatio || 1
-      return {
-        scale: width >= 768 ? Math.min(width / referenceWidth, MAX_SCALE) : mobileScale(width),
-        initialDPR: dpr,
-      }
-    }
-    return { scale: 1, initialDPR: 1 }
-  })
-
-  useEffect(() => {
-    const setScale = (s) => setState((prev) => ({ ...prev, scale: s }))
-    const handleResize = () => {
-      const width = window.innerWidth
-      const currentDPR = window.devicePixelRatio || 1
-      const virtualWidth = width * (currentDPR / state.initialDPR)
-      if (virtualWidth >= 768) setScale(Math.min(width / referenceWidth, MAX_SCALE))
-      else setScale(mobileScale(width))
-    }
-    window.addEventListener('resize', handleResize)
-    return () => window.removeEventListener('resize', handleResize)
-  }, [referenceWidth, mobileReferenceWidth, state.initialDPR])
-
-  return state.scale
-}
-
 function CardsSection() {
-  const scale = useScale()
+  const scale = useScale(1440, 430)
+  const isDesktop = useIsDesktop()
   const home = useContent('home', { intro: INTRO_FALLBACK })
   const intro = home.intro ?? INTRO_FALLBACK
   // Treat empty/blank API values as "not provided" so incomplete CMS data
@@ -226,7 +191,7 @@ function CardsSection() {
         // width; everything after it is shared. Kept as a single timeline
         // either way so the scrub's `entrance.progress(1)` snap-to-settled
         // keeps working.
-        const wide = window.matchMedia('(min-width: 768px)').matches
+        const wide = window.matchMedia(DESKTOP_QUERY).matches
 
         const entrance = gsap.timeline({
           scrollTrigger: {
@@ -462,8 +427,8 @@ function CardsSection() {
           style={{
             transform: `scale(${scale})`,
             transformOrigin: 'top center',
-            width: scale >= 1 ? '100%' : `${100 / scale}%`,
-            marginLeft: scale >= 1 ? '0' : `${(100 - 100 / scale) / 2}%`,
+            width: isDesktop && scale >= 1 ? '100%' : `${100 / scale}%`,
+            marginLeft: isDesktop && scale >= 1 ? '0' : `${(100 - 100 / scale) / 2}%`,
             height: `${100 / scale}vh`,
           }}
         >

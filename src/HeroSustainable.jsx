@@ -1,11 +1,11 @@
-import { useLayoutEffect, useRef, useState, useEffect } from 'react'
+import { useLayoutEffect, useRef } from 'react'
 import { Link } from 'react-router-dom'
 import { gsap } from 'gsap'
 import { IoArrowForward } from 'react-icons/io5'
 import logo from './assets/Logo.svg'
 import avenueViz from './assets/avenuesvg.svg'
 import { HERO_INTRO, offscreenBelow } from './motion'
-import { MAX_SCALE } from './useScale'
+import { useScale, useIsDesktop } from './useScale'
 import { useContent } from './api'
 
 const HERO_FALLBACK = {
@@ -15,44 +15,9 @@ const HERO_FALLBACK = {
   featured: { eyebrow: 'RECENT PROJECTS', title: 'Second Avenue', slug: 'second-avenue' },
 }
 
-function useScale(referenceWidth = 1440, mobileReferenceWidth = 430) {
-  // Below 768px the mobile layout is authored for a 430px-wide reference
-  // (iPhone 14 Pro Max). Scaling by width/430 — capped at 1 so 430px+ stays
-  // pixel-identical to the design — shrinks the whole hero uniformly on
-  // narrower/shorter phones, keeping the same proportions instead of letting
-  // the fixed pt/gap/pb collapse and collide the description into the wordmark.
-  const mobileScale = (width) => Math.min(1, width / mobileReferenceWidth)
-
-  const [state, setState] = useState(() => {
-    if (typeof window !== 'undefined') {
-      const width = window.innerWidth
-      const dpr = window.devicePixelRatio || 1
-      return {
-        scale: width >= 768 ? Math.min(width / referenceWidth, MAX_SCALE) : mobileScale(width),
-        initialDPR: dpr,
-      }
-    }
-    return { scale: 1, initialDPR: 1 }
-  })
-
-  useEffect(() => {
-    const setScale = (s) => setState((prev) => ({ ...prev, scale: s }))
-    const handleResize = () => {
-      const width = window.innerWidth
-      const currentDPR = window.devicePixelRatio || 1
-      const virtualWidth = width * (currentDPR / state.initialDPR)
-      if (virtualWidth >= 768) setScale(Math.min(width / referenceWidth, MAX_SCALE))
-      else setScale(mobileScale(width))
-    }
-    window.addEventListener('resize', handleResize)
-    return () => window.removeEventListener('resize', handleResize)
-  }, [referenceWidth, mobileReferenceWidth, state.initialDPR])
-
-  return state.scale
-}
-
 function HeroSustainable() {
-  const scale = useScale()
+  const scale = useScale(1440, 430)
+  const isDesktop = useIsDesktop()
   const home = useContent('home', { hero: HERO_FALLBACK })
   const hero = home.hero ?? HERO_FALLBACK
   // Per-field merge: the API omits featured fields when no project is
@@ -74,11 +39,14 @@ function HeroSustainable() {
       // of the screen — the viewport edge is the only thing clipping it, so it
       // rises in from off-screen rather than out of a box.
       gsap.set(alcoveRef.current, { y: alcoveTravel })
-      // Headline, description and card keep the original slide-fade.
-      gsap.set([headlineRef.current, descriptionRef.current, cardRef.current], {
+      // Headline and description keep the original slide-fade.
+      gsap.set([headlineRef.current, descriptionRef.current], {
         y: 80,
         opacity: 0,
       })
+      // The card doesn't travel — it belongs to the wordmark, so it simply
+      // appears on it once the wordmark has landed.
+      gsap.set(cardRef.current, { opacity: 0 })
 
       const { duration, ease } = HERO_INTRO
       gsap
@@ -90,7 +58,8 @@ function HeroSustainable() {
         // heavily, so it reads as one continuous rise, not separate pops.
         .to(headlineRef.current, { y: 0, opacity: 1, duration, ease }, 0.18)
         .to(descriptionRef.current, { y: 0, opacity: 1, duration, ease }, 0.36)
-        .to(cardRef.current, { y: 0, opacity: 1, duration, ease }, 0.54)
+        // Position `duration`: the frame the wordmark comes to rest.
+        .to(cardRef.current, { opacity: 1, duration: 0.8, ease }, duration)
     })
 
     return () => ctx.revert()
@@ -106,9 +75,12 @@ function HeroSustainable() {
         style={{
           transform: `scale(${scale})`,
           transformOrigin: 'top center',
-          width: scale >= 1 ? '100%' : `${100 / scale}%`,
-          marginLeft: scale >= 1 ? '0' : `${(100 - 100 / scale) / 2}%`,
+          width: isDesktop && scale >= 1 ? '100%' : `${100 / scale}%`,
+          marginLeft: isDesktop && scale >= 1 ? '0' : `${(100 - 100 / scale) / 2}%`,
           height: `${100 / scale}vh`,
+          // Exposed so the mobile top padding can measure the CANVAS height
+          // rather than the raw viewport — see the padding rule on <main>.
+          '--scale': scale,
         }}
       >
         <main
@@ -120,16 +92,30 @@ function HeroSustainable() {
           // view is untouched) but shrinks on shorter viewports (e.g. iPhone SE,
           // 667px) so the top nav-clearance yields space instead of collapsing
           // the description→wordmark gap. Pairs with the width scale-lock above.
+          // The vh term is divided by --scale because everything here is authored
+          // in canvas px: a raw vh measures the physical viewport, so on a zoomed
+          // canvas (iPad portrait, ~619 canvas px tall inside an 1180px screen)
+          // the rule thought it had 1180px of room, never yielded, and pushed the
+          // wordmark off the bottom. /var(--scale) converts vh into canvas px.
           // The 40px bottom pad is the shared mobile wordmark gap — it is canvas
           // px, so it renders as 40 × width/430, matching the footer's
           // min(40px, 9.3023vw) (see ContactFooterPanel). Flat, not vh-clamped:
           // the top padding is the one that yields space on short screens.
-          className="relative h-full max-w-[1440px] mx-auto flex flex-col bg-[#E2EAF2] px-4 max-md:pb-[40px] max-md:[padding-top:min(196px,21.031vh)] text-[#1C2D4F] md:px-[38px] md:pb-[40px] md:pt-[200.69px]"
+          className="relative h-full max-w-[1440px] mx-auto flex flex-col bg-[#E2EAF2] px-4 max-md:pb-[40px] max-md:[padding-top:min(196px,21.031vh)] tablet:[padding-top:min(196px,calc(21.031vh_/_var(--scale,1)))] text-[#1C2D4F] md:px-[38px] md:pb-[40px] md:pt-[200.69px]"
         >
-          <div className="flex flex-col md:flex-row md:justify-between md:items-start gap-[60px] md:gap-8">
+          {/* tablet: iPad portrait's canvas is proportionally shorter than any
+              phone's (573-619 canvas px vs 665-930), so the phone stack
+              overflows by ~72px. The headline→description gap and the wordmark
+              below give that back; phones and desktop keep their values. */}
+          <div className="flex flex-col md:flex-row md:justify-between md:items-start gap-[60px] tablet:gap-[30px] md:gap-8">
             <h1
               ref={headlineRef}
-              className="m-0 text-[56px] not-italic leading-[104%] tracking-[-0.02em] md:text-[48px] md:leading-[115%]"
+              // tablet: the headline is the largest single block in the hero
+              // (233 of the mini's 573 canvas px). iPad portrait's canvas is
+              // proportionally shorter than any phone's, so trimming it here
+              // buys back the room instead of squeezing the wordmark into the
+              // description. Phones and desktop keep their sizes.
+              className="m-0 text-[56px] tablet:text-[44px] not-italic leading-[104%] tracking-[-0.02em] md:text-[48px] md:leading-[115%]"
               style={{ fontFamily: "'Season Mix VF', serif", fontWeight: 420 }}
             >
               {hero.headline[0]}
@@ -158,7 +144,7 @@ function HeroSustainable() {
           <div className="relative mt-auto">
             <div
               ref={alcoveRef}
-              className="w-full aspect-[64/13] max-md:aspect-auto max-md:h-[75px]"
+              className="w-full aspect-[64/13] max-md:aspect-auto max-md:h-[110px] tablet:h-[86px]"
               style={{
                 WebkitMaskImage: `url("${logo}")`,
                 maskImage: `url("${logo}")`,

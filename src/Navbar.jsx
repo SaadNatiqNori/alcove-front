@@ -8,7 +8,7 @@ import { cubicEase } from './easings'
 import { HERO_INTRO, offscreenAbove } from './motion'
 import { PROJECTS_DATA } from './projects'
 import { useProjects, useContent } from './api'
-import { useScale } from './useScale'
+import { useScale, useIsDesktop } from './useScale'
 import BurgerIcon from './BurgerIcon'
 import MobileMenu from './MobileMenu'
 
@@ -138,12 +138,20 @@ function ProjectsDropdown({ open, onClose, projects, heading, onMouseEnter, onMo
 
 function Navbar() {
   const navbarRef = useRef(null)
-  // Locked to the same 1440 canvas as the page content so the header scales in
-  // step with the rest of the site above 768px. The scale sits on the <header>
-  // (not the <nav>, whose transform the entrance animation owns); it scales the
-  // pill and the projects dropdown together so they stay aligned. scale is 1
-  // below 768px (mobile untouched).
+  // Locked to the same canvas as the page content so the header scales in step
+  // with the rest of the site. The scale sits on the <header> (not the <nav>,
+  // whose transform the entrance animation owns); it scales the pill and the
+  // projects dropdown together so they stay aligned. scale is 1 on phones
+  // (mobile untouched).
   const scale = useScale()
+  // Tablet portrait runs the mobile layout at a scale above 1, so it cannot use
+  // the <header> transform: the header would become the containing block for the
+  // full-screen MobileMenu below (see the header's style note). It scales an
+  // inner layer wrapping only the pill and dropdown instead, width-compensated
+  // so the scaled box lands exactly on the header's content box.
+  const isDesktop = useIsDesktop()
+  const scaleHeader = isDesktop && scale !== 1
+  const scaleInner = !isDesktop && scale !== 1
   const [projectsOpen, setProjectsOpen] = useState(false)
   const [menuOpen, setMenuOpen] = useState(false)
   const [hoveredLink, setHoveredLink] = useState(null)
@@ -211,12 +219,28 @@ function Navbar() {
   return (
     <header
       className="fixed top-0 left-0 right-0 z-50 flex flex-col items-center px-4 pt-4 md:px-8 md:pt-5 pointer-events-none"
-      // Only apply the scale transform above 768px. At scale 1 (mobile) a
-      // `transform` would still establish a containing block for fixed-position
-      // descendants, trapping the full-screen MobileMenu inside the header box.
-      style={scale === 1 ? { transformOrigin: 'top center' } : { transform: `scale(${scale})`, transformOrigin: 'top center' }}
+      // Only the desktop layout scales the header itself. At scale 1 (mobile) —
+      // and on tablet portrait, which scales the inner layer instead — a
+      // `transform` here would still establish a containing block for
+      // fixed-position descendants, trapping the full-screen MobileMenu inside
+      // the header box.
+      style={scaleHeader ? { transform: `scale(${scale})`, transformOrigin: 'top center' } : { transformOrigin: 'top center' }}
       aria-label="Site header"
     >
+      {/* Layout-neutral when unscaled: it repeats the header's own centering so
+          the desktop `md:w-max` pill still centers exactly as before. */}
+      <div
+        className="flex w-full flex-col items-center"
+        style={
+          scaleInner
+            ? {
+                transform: `scale(${scale})`,
+                transformOrigin: 'top center',
+                width: `${100 / scale}%`,
+              }
+            : undefined
+        }
+      >
       <nav
         ref={navbarRef}
         className="pointer-events-auto relative z-50 flex h-[55px] w-full justify-between items-center gap-[5px] rounded-[4px] border border-[#FFFFFF1A] md:border-[#FFFFFF0D] bg-navy p-2 md:min-w-[420px] md:w-max"
@@ -303,6 +327,7 @@ function Navbar() {
         onMouseEnter={openProjects}
         onMouseLeave={scheduleCloseProjects}
       />
+      </div>
 
       <MobileMenu
         open={menuOpen}

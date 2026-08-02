@@ -5,6 +5,7 @@ import ArrowIcon from '../ArrowIcon'
 import { cubicBezier, cubicEase } from '../easings'
 import { prefersReducedMotion } from './motion'
 import { ScaleLock } from '../ScaleLock'
+import { DESKTOP_MIN } from '../breakpoints'
 
 gsap.registerPlugin(ScrollTrigger)
 
@@ -172,11 +173,11 @@ function ProjectShowcase({ slides = [] }) {
   // there's no large empty gap above/below the centered slide.
   const [isMobile, setIsMobile] = useState(() =>
     typeof window !== 'undefined'
-      ? window.matchMedia('(max-width: 767px)').matches
+      ? window.matchMedia(`(max-width: ${DESKTOP_MIN - 1}px)`).matches
       : false
   )
   useEffect(() => {
-    const mq = window.matchMedia('(max-width: 767px)')
+    const mq = window.matchMedia(`(max-width: ${DESKTOP_MIN - 1}px)`)
     const onChange = (e) => setIsMobile(e.matches)
     mq.addEventListener('change', onChange)
     return () => mq.removeEventListener('change', onChange)

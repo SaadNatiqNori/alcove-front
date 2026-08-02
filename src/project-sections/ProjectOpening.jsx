@@ -3,6 +3,7 @@ import { gsap } from 'gsap'
 import { ScrollTrigger } from 'gsap/ScrollTrigger'
 import { prefersReducedMotion } from './motion'
 import { useScale } from '../useScale'
+import { DESKTOP_MIN } from '../breakpoints'
 
 gsap.registerPlugin(ScrollTrigger)
 
@@ -22,10 +23,10 @@ function ProjectOpening({ hero, banner }) {
   const scale = useScale()
 
   const [cinematic, setCinematic] = useState(
-    () => window.matchMedia('(min-width: 768px)').matches && !prefersReducedMotion()
+    () => window.matchMedia(`(min-width: ${DESKTOP_MIN}px)`).matches && !prefersReducedMotion()
   )
   useEffect(() => {
-    const mq = window.matchMedia('(min-width: 768px)')
+    const mq = window.matchMedia(`(min-width: ${DESKTOP_MIN}px)`)
     const update = () => setCinematic(mq.matches && !prefersReducedMotion())
     mq.addEventListener('change', update)
     return () => mq.removeEventListener('change', update)

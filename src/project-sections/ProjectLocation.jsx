@@ -6,6 +6,7 @@ import { prefersReducedMotion } from './motion'
 import { OrbitSVG, ShieldSVG, CirclesSVG } from './LocationIllustrations'
 import { useScale } from '../useScale'
 import { ScaleLock } from '../ScaleLock'
+import { DESKTOP_MIN } from '../breakpoints'
 
 gsap.registerPlugin(ScrollTrigger)
 
@@ -31,10 +32,10 @@ function ProjectLocation({ title = 'Location', items = [] }) {
   // illustration stage is dropped and each item's illustration is shown inline
   // inside its own accordion body instead.
   const [isMobile, setIsMobile] = useState(
-    () => typeof window !== 'undefined' && !window.matchMedia('(min-width: 768px)').matches
+    () => typeof window !== 'undefined' && !window.matchMedia(`(min-width: ${DESKTOP_MIN}px)`).matches
   )
   useEffect(() => {
-    const mq = window.matchMedia('(min-width: 768px)')
+    const mq = window.matchMedia(`(min-width: ${DESKTOP_MIN}px)`)
     const update = () => setIsMobile(!mq.matches)
     mq.addEventListener('change', update)
     return () => mq.removeEventListener('change', update)
