@@ -5,6 +5,7 @@ import { IoChevronDownOutline } from 'react-icons/io5'
 import logo from './assets/Logo.svg'
 import arrowRight from './assets/arrow-right.svg'
 import { cubicEase } from './easings'
+import { HERO_INTRO, offscreenAbove } from './motion'
 import { PROJECTS_DATA } from './projects'
 import { useProjects, useContent } from './api'
 import { useScale } from './useScale'
@@ -183,16 +184,13 @@ function Navbar() {
       coverImage: p.coverImage,
     }))
 
+  // Pure slide, no fade: the bar starts fully above the top edge of the screen
+  // and drops in. Runs the shared HERO_INTRO values so it travels in parallel
+  // with the hero wordmark rising from the bottom edge.
   useLayoutEffect(() => {
     const ctx = gsap.context(() => {
-      gsap.set(navbarRef.current, { y: -30, opacity: 0 })
-      gsap.to(navbarRef.current, {
-        y: 0,
-        opacity: 1,
-        duration: 1.3,
-        ease: cubicEase,
-        delay: 0.2,
-      })
+      gsap.set(navbarRef.current, { y: offscreenAbove(navbarRef.current) })
+      gsap.to(navbarRef.current, { y: 0, ...HERO_INTRO })
     })
     return () => ctx.revert()
   }, [])

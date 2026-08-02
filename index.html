@@ -4,6 +4,13 @@
     <meta charset="UTF-8" />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <!-- The site has no dark variant. Without this, a device in dark appearance
+         makes Safari ignore theme-color and fall back to its own dark chrome,
+         which is what put navy bars above and below the page on iOS. Both
+         theme-color entries are declared so either appearance gets a match. -->
+    <meta name="color-scheme" content="light" />
+    <meta name="theme-color" content="#E2EAF2" media="(prefers-color-scheme: light)" />
+    <meta name="theme-color" content="#E2EAF2" media="(prefers-color-scheme: dark)" />
     <meta name="theme-color" content="#E2EAF2" />
     <title>Alcove | Real Estate Development in Erbil, Kurdistan</title>
     <meta

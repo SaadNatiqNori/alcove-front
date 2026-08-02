@@ -4,6 +4,7 @@ import { ScrollTrigger } from 'gsap/ScrollTrigger'
 import ContactSection from './ContactSection'
 import avenueImage from './assets/AVENUE.jpg'
 import { cubicEase } from './easings'
+import { useRevealOnScroll } from './motion'
 import { useContent } from './api'
 import { useScale } from './useScale'
 
@@ -46,7 +47,7 @@ const ABOUT_FALLBACK = {
 
 function Strength({ title, description, index, mobileDivider }) {
   return (
-    <div className={`relative ${mobileDivider ? "mt-[42px] pt-[42px] border-t-[0.5px] border-white md:mt-0 md:pt-0 md:border-t-0" : ''} ${index > 0 ? "md:ml-[61px] md:pl-[61px] md:before:absolute md:before:left-0 md:before:top-0 md:before:h-full md:before:w-[0.5px] md:before:bg-white md:before:content-['']" : ''}`}>
+    <div data-reveal className={`relative ${mobileDivider ? "mt-[42px] pt-[42px] border-t-[0.5px] border-white md:mt-0 md:pt-0 md:border-t-0" : ''} ${index > 0 ? "md:ml-[61px] md:pl-[61px] md:before:absolute md:before:left-0 md:before:top-0 md:before:h-full md:before:w-[0.5px] md:before:bg-white md:before:content-['']" : ''}`}>
       <h3 className="m-0 text-[20px] md:text-[30px] font-normal leading-[1.15] tracking-[-0.6px] text-gold md:whitespace-nowrap">
         {title}
       </h3>
@@ -64,6 +65,12 @@ function AboutPage() {
   const why = about.why ?? ABOUT_FALLBACK.why
   const strengths = about.strengths ?? ABOUT_FALLBACK.strengths
   const strengthItems = strengths.items ?? ABOUT_FALLBACK.strengths.items
+  // Body sections reveal one by one on scroll (the hero keeps its own bespoke
+  // mount animation above). Keyed on the strength titles so the reveal
+  // re-initialises when CMS content replaces the fallback.
+  const revealRef = useRevealOnScroll([
+    strengthItems.map((s) => s.title).join('|'),
+  ])
   const goalsSectionRef = useRef(null)
   const overlayRef = useRef(null)
   const heroImageRef = useRef(null)
@@ -125,6 +132,7 @@ function AboutPage() {
            mechanisms below drift-free. --zoom is exposed so the parallax vh
            units can stay full-viewport (÷zoom) instead of scaling down. */}
        <div
+         ref={revealRef}
          style={{ zoom: scale, '--zoom': scale }}
          className="mx-auto w-full max-w-[1440px] md:w-[1440px]"
        >
@@ -203,13 +211,14 @@ function AboutPage() {
 
               <div className="relative px-4 pt-40 md:pt-52 pb-12 md:pb-16">
                 <div className="max-w-[720px] mx-auto">
-                  <div className="flex flex-col items-start gap-[28px] md:gap-[56px]">
-                    <span className="pointer-events-auto inline-flex items-center justify-center gap-[10px] rounded-[31px] border-[0.5px] border-mist/40 px-[9px] pb-[7px] pt-[10px] font-['Akkurat_Mono',monospace] text-[14px] font-medium leading-[1.15] tracking-[-0.28px] text-center uppercase text-mist bg-transparent h-[24px]">
+                  <div data-reveal-group className="flex flex-col items-start gap-[28px] md:gap-[56px]">
+                    <span data-reveal className="pointer-events-auto inline-flex items-center justify-center gap-[10px] rounded-[31px] border-[0.5px] border-mist/40 px-[9px] pb-[7px] pt-[10px] font-['Akkurat_Mono',monospace] text-[14px] font-medium leading-[1.15] tracking-[-0.28px] text-center uppercase text-mist bg-transparent h-[24px]">
                       {goals.badge}
                     </span>
                     {goals.paragraphs.map((p, i) => (
                       <p
                         key={i}
+                        data-reveal
                         className="m-0 text-[28px] md:text-[42px] font-normal leading-[1.2] tracking-[-0.84px] text-white"
                       >
                         {p.lead}{' '}
@@ -241,10 +250,11 @@ function AboutPage() {
                 {why.title[1]}
               </h2>
             </div>
-            <div className="space-y-12 md:w-[780px] md:space-y-16">
+            <div data-reveal-group className="space-y-12 md:w-[780px] md:space-y-16">
               {why.paragraphs.map((p, i) => (
                 <p
                   key={i}
+                  data-reveal
                   className="m-0 text-[20px] md:text-[34px] font-normal leading-[110%] tracking-[-0.5px] md:tracking-[-1.36px] text-navy"
                 >
                   <span className="text-[#8A8FA0]">{p.muted}</span>{' '}
@@ -257,25 +267,27 @@ function AboutPage() {
 
         <section className="relative isolate bg-navy text-mist px-[16px] md:px-[38px] pt-24 md:pt-[95px] pb-24 md:pb-32">
           <div aria-hidden className="pointer-events-none absolute inset-y-0 left-1/2 -z-10 -translate-x-1/2 bg-navy" style={{ width: 'calc(100vw / var(--zoom))' }} />
-          <div className="max-w-[var(--content-width)] mx-auto">
+          <div data-reveal-group className="max-w-[var(--content-width)] mx-auto">
             <p
+              data-reveal
               className="m-0 text-[16px] md:text-[22px] leading-none tracking-[-0.88px] text-mist"
               style={{ fontFamily: "'Season Sans-TRIAL', sans-serif", fontWeight: 550 }}
             >
               {strengths.eyebrow}
             </p>
             <h2
+                data-reveal
                 className="m-0 mt-[16px] md:mt-[30px] text-[24px] md:text-[36px] font-normal leading-[30px] md:leading-[42px] tracking-[-0.5px] md:tracking-[-1.44px] text-mist md:w-[780px]"
             >
               {strengths.title}
             </h2>
 
-            <div className="mt-16 md:mt-[104px] flex flex-col md:flex-row md:gap-y-0">
+            <div data-reveal-group className="mt-16 md:mt-[104px] flex flex-col md:flex-row md:gap-y-0">
               {strengthItems.slice(0, 3).map((s, i) => (
                 <Strength key={s.title} index={i} mobileDivider={i > 0} {...s} />
               ))}
             </div>
-            <div className="md:mt-[138px] flex flex-col md:flex-row md:gap-y-0">
+            <div data-reveal-group className="md:mt-[138px] flex flex-col md:flex-row md:gap-y-0">
               {strengthItems.slice(3, 5).map((s, i) => (
                 <Strength key={s.title} index={i} mobileDivider {...s} />
               ))}

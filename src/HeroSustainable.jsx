@@ -1,15 +1,12 @@
 import { useLayoutEffect, useRef, useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
 import { gsap } from 'gsap'
-import { ScrollTrigger } from 'gsap/ScrollTrigger'
 import { IoArrowForward } from 'react-icons/io5'
 import logo from './assets/Logo.svg'
 import avenueViz from './assets/avenuesvg.svg'
-import { cubicEase } from './easings'
+import { HERO_INTRO, offscreenBelow } from './motion'
 import { MAX_SCALE } from './useScale'
 import { useContent } from './api'
-
-gsap.registerPlugin(ScrollTrigger)
 
 const HERO_FALLBACK = {
   headline: ['Shaping the Future', 'Of Sustainable Spaces'],
@@ -63,7 +60,6 @@ function HeroSustainable() {
   const featured = { ...HERO_FALLBACK.featured, ...(hero.featured ?? {}) }
   // The card deep-links to the recent project when the CMS provides a slug.
   const CardTag = featured.slug ? Link : 'div'
-  const sectionRef = useRef(null)
   const headlineRef = useRef(null)
   const descriptionRef = useRef(null)
   const alcoveRef = useRef(null)
@@ -71,41 +67,30 @@ function HeroSustainable() {
 
   useLayoutEffect(() => {
     const ctx = gsap.context(() => {
-      const targets = [
-        headlineRef.current,
-        descriptionRef.current,
-        alcoveRef.current,
-        cardRef.current,
-      ]
+      // Measured first, while the layout is still untransformed.
+      const alcoveTravel = offscreenBelow(alcoveRef.current)
 
-      const resetInitial = () => {
-        gsap.set(
-          [headlineRef.current, descriptionRef.current, cardRef.current],
-          { y: 80, opacity: 0 }
-        )
-        gsap.set(alcoveRef.current, { y: 220, opacity: 0 })
-      }
-
-      const playIn = () => {
-        resetInitial()
-        gsap.to(targets, {
-          y: 0,
-          opacity: 1,
-          duration: 1.3,
-          ease: cubicEase,
-          delay: 0.2,
-          overwrite: 'auto',
-        })
-      }
-
-      playIn()
-
-      ScrollTrigger.create({
-        trigger: sectionRef.current,
-        start: 'top bottom',
-        end: 'bottom top',
-        onEnterBack: playIn,
+      // The wordmark is a pure slide, no fade, starting fully below the bottom
+      // of the screen — the viewport edge is the only thing clipping it, so it
+      // rises in from off-screen rather than out of a box.
+      gsap.set(alcoveRef.current, { y: alcoveTravel })
+      // Headline, description and card keep the original slide-fade.
+      gsap.set([headlineRef.current, descriptionRef.current, cardRef.current], {
+        y: 80,
+        opacity: 0,
       })
+
+      const { duration, ease } = HERO_INTRO
+      gsap
+        .timeline({ delay: HERO_INTRO.delay })
+        // Position 0: in lockstep with the navbar, which runs the same values
+        // in the opposite direction from the top edge.
+        .to(alcoveRef.current, { y: 0, duration, ease }, 0)
+        // Then the content, 0.18s apart against a 1.3s duration — they overlap
+        // heavily, so it reads as one continuous rise, not separate pops.
+        .to(headlineRef.current, { y: 0, opacity: 1, duration, ease }, 0.18)
+        .to(descriptionRef.current, { y: 0, opacity: 1, duration, ease }, 0.36)
+        .to(cardRef.current, { y: 0, opacity: 1, duration, ease }, 0.54)
     })
 
     return () => ctx.revert()
@@ -113,7 +98,6 @@ function HeroSustainable() {
 
   return (
     <section
-      ref={sectionRef}
       className="relative w-full h-screen overflow-hidden bg-[#E2EAF2]"
       aria-label="Hero"
     >
@@ -131,12 +115,16 @@ function HeroSustainable() {
           // The navbar now scales with the same 1440 lock as this content, so the
           // top padding is a plain canvas value (75px navbar + 125.69px gap) that
           // scales uniformly with everything else — no /scale compensation.
-          // Mobile top/bottom padding is min(designPx, equivalent-vh): it equals
-          // the design values at the 932px reference height (so the iPhone 14 Pro
-          // Max view is untouched) but shrinks on shorter viewports (e.g. iPhone
-          // SE, 667px) so the top nav-clearance yields space instead of collapsing
+          // Mobile top padding is min(designPx, equivalent-vh): it equals the
+          // design value at the 932px reference height (so the iPhone 14 Pro Max
+          // view is untouched) but shrinks on shorter viewports (e.g. iPhone SE,
+          // 667px) so the top nav-clearance yields space instead of collapsing
           // the description→wordmark gap. Pairs with the width scale-lock above.
-          className="relative h-full max-w-[1440px] mx-auto flex flex-col bg-[#E2EAF2] px-4 max-md:[padding-bottom:min(108.6px,11.652vh)] max-md:[padding-top:min(196px,21.031vh)] text-[#1C2D4F] md:px-[38px] md:pb-[40px] md:pt-[200.69px]"
+          // The 40px bottom pad is the shared mobile wordmark gap — it is canvas
+          // px, so it renders as 40 × width/430, matching the footer's
+          // min(40px, 9.3023vw) (see ContactFooterPanel). Flat, not vh-clamped:
+          // the top padding is the one that yields space on short screens.
+          className="relative h-full max-w-[1440px] mx-auto flex flex-col bg-[#E2EAF2] px-4 max-md:pb-[40px] max-md:[padding-top:min(196px,21.031vh)] text-[#1C2D4F] md:px-[38px] md:pb-[40px] md:pt-[200.69px]"
         >
           <div className="flex flex-col md:flex-row md:justify-between md:items-start gap-[60px] md:gap-8">
             <h1

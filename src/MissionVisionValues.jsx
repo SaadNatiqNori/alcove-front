@@ -4,6 +4,8 @@ import { ScrollTrigger } from 'gsap/ScrollTrigger'
 import { useContent } from './api'
 import ContactFooterPanel from './ContactFooterPanel'
 import { MAX_SCALE } from './useScale'
+import { REVEAL, prefersReducedMotion } from './motion'
+import { cubicEase } from './easings'
 
 const CTA_FALLBACK = {
   title: "Let's talk",
@@ -193,21 +195,26 @@ function Card({ refProp, title, description, isValues, values, illustration, zIn
       <div className="flex-1 flex flex-col justify-start bg-[#E6EBF0] -mx-4 px-4 md:-mx-8 md:px-8">
         <div className="w-full h-[1px] bg-[#1C2D4F]/30" />
         <div className="mt-6 grid grid-cols-1 md:grid-cols-[460px_1fr] gap-[14px] md:gap-16">
+          {/* data-card-* mark the three reveal parts; the cover effect fades and
+              rises them in as the card comes into view (see revealCard). */}
           <h3
+            data-card-title
             className="m-0 text-[44px] md:text-[58px] font-normal leading-none tracking-[-0.01em]"
             style={{ fontFamily: "'Season Mix-TRIAL', serif" }}
           >
             {title}
           </h3>
           <div>
-            {isValues ? (
-              <ValuesContent intro={values.intro} items={values.items} />
-            ) : (
-              <p className="m-0 text-[14px] leading-[130%] tracking-[0] max-w-[520px] text-[#1C2D4F]">
-                {description}
-              </p>
-            )}
-            <div className="mt-10 flex justify-center md:justify-start">
+            <div data-card-body>
+              {isValues ? (
+                <ValuesContent intro={values.intro} items={values.items} />
+              ) : (
+                <p className="m-0 text-[14px] leading-[130%] tracking-[0] max-w-[520px] text-[#1C2D4F]">
+                  {description}
+                </p>
+              )}
+            </div>
+            <div data-card-illustration className="mt-10 flex justify-center md:justify-start">
               {illustration}
             </div>
           </div>
@@ -323,6 +330,88 @@ function MissionVisionValues() {
 
       // Footer (last layer) settles docked; the sticky stage releases at the
       // section end, so the footer holds full-screen as the page bottom.
+
+      // ── Card content entrance ──────────────────────────────────────────────
+      // The house fade+rise from motion.js (REVEAL), same as the About and
+      // Contact pages: title and body together, then the illustration a moment
+      // behind them. These cards can't use useRevealOnScroll — all three sit
+      // stacked at inset-0 and are moved by the scrub, so ScrollTrigger can't
+      // read "this element is 80% up the viewport" off the layout. Each card's
+      // entrance instead fires at the scroll offset where THIS timeline has put
+      // the card's top edge at that same 80% mark.
+      if (prefersReducedMotion()) return
+
+      const IN_VIEW_AT = 80 // matches REVEAL.start ('top 80%'), expressed as % of the viewport
+      const ILLUSTRATION_LAG = 0.25 // seconds the drawing trails its own title/body
+      const beats = tl.duration()
+
+      // A card comes into view one of two ways, so its trigger is written
+      // accordingly:
+      //   • While the section itself is still scrolling up into place, the whole
+      //     stage rides in. A card parked at y0% of the stage is 80% up the
+      //     viewport when the section's top is (80 - y0)% down it — Mission
+      //     (y0 0) gets the plain 'top 80%', Vision (already peeking) a later
+      //     one.
+      //   • A card that starts fully below the fold (Values) only appears once
+      //     the stage is pinned and the scrub lifts it, so its trigger is the
+      //     scroll offset at which THIS timeline puts its top edge on the mark.
+      const startFor = (y0, t0, t1) => {
+        if (y0 < IN_VIEW_AT) return `top ${IN_VIEW_AT - y0}%`
+        const beat = t0 + (1 - IN_VIEW_AT / y0) * (t1 - t0)
+        // Functional so a resize re-measures instead of keeping a stale pixel
+        // offset; `top+=X top` fires once the scroll passes the section's start
+        // by X — the same axis the cover timeline scrubs on.
+        return () => {
+          const range = sectionRef.current.offsetHeight - window.innerHeight
+          return `top+=${(beat / beats) * range} top`
+        }
+      }
+
+      const revealCard = (cardEl, start) => {
+        if (!cardEl) return
+        // A rebuild (breakpoint flip) must not pull already-entered content back
+        // to invisible, so the flag lives on the DOM node — same guard the house
+        // hook uses.
+        const part = (sel) => {
+          const el = cardEl.querySelector(sel)
+          return el && !el.dataset.revealed ? el : null
+        }
+        const text = ['[data-card-title]', '[data-card-body]'].map(part).filter(Boolean)
+        const illustration = part('[data-card-illustration]')
+        if (!text.length && !illustration) return
+
+        const enter = gsap.timeline({
+          scrollTrigger: { trigger: sectionRef.current, start, once: true },
+          onComplete: () =>
+            [...text, illustration].forEach((el) => el && (el.dataset.revealed = '1')),
+        })
+        if (text.length) {
+          enter.from(
+            text,
+            {
+              opacity: 0,
+              y: REVEAL.y,
+              duration: REVEAL.duration,
+              stagger: REVEAL.stagger,
+              ease: cubicEase,
+            },
+            0
+          )
+        }
+        if (illustration) {
+          enter.from(
+            illustration,
+            { opacity: 0, y: REVEAL.y, duration: REVEAL.duration, ease: cubicEase },
+            REVEAL.stagger + ILLUSTRATION_LAG
+          )
+        }
+      }
+
+      // Mission is docked from the section's first frame, Vision rides in
+      // already peeking, and Values climbs in partway through its own rise.
+      revealCard(missionRef.current, startFor(0, 0, 1))
+      revealCard(visionRef.current, startFor(100 - PEEK, 0, 1))
+      revealCard(valuesRef.current, startFor(100, 2 - riseDur, 2))
     })
 
     return () => ctx.revert()

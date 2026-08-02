@@ -7,6 +7,7 @@ import ContactSection from './ContactSection'
 import { ScaleLock } from './ScaleLock'
 import logoYellow from './assets/LogoYellow.svg'
 import { cubicEase } from './easings'
+import { useRevealOnScroll, prefersReducedMotion, REVEAL } from './motion'
 import { useContent } from './api'
 
 const SUBS_FALLBACK = {
@@ -169,6 +170,41 @@ function SubsidiariesPage() {
   }
   const titleRef = useRef(null)
   const introRef = useRef(null)
+  // Cards and the "what we do" panel reveal one by one on scroll. Keyed on the
+  // item titles so the reveal re-initialises once CMS content replaces the
+  // fallback — otherwise the real cards would inherit a stuck opacity: 0.
+  // `each`: the zigzag puts every card in its own vertical band, so each one
+  // rises off its own trigger as it enters view (same entrance as the on-load
+  // title/intro) instead of the whole grid firing off a shared trigger.
+  const revealRef = useRevealOnScroll([items.map((i) => i.title).join('|')], {
+    each: true,
+  })
+
+  // The centre spine was the one static element among the reveals. It runs the
+  // house fade+rise once, on the same trigger and timing as the connector dashes
+  // that meet it, so the whole diagram arrives as one piece — no scrub, the line
+  // is not a scroll indicator.
+  const spineRef = useRef(null)
+  useLayoutEffect(() => {
+    if (!spineRef.current || prefersReducedMotion()) return
+    const mm = gsap.matchMedia()
+    mm.add('(min-width: 768px)', () => {
+      gsap.from(spineRef.current, {
+        opacity: 0,
+        y: REVEAL.y,
+        // A touch slower than the house 1.2s: the spine spans the whole grid,
+        // so the same duration reads faster on it than on a card.
+        duration: REVEAL.duration * 1.4,
+        ease: cubicEase,
+        scrollTrigger: {
+          trigger: spineRef.current,
+          start: REVEAL.start,
+          once: true,
+        },
+      })
+    })
+    return () => mm.revert()
+  }, [])
 
   useLayoutEffect(() => {
     const ctx = gsap.context(() => {
@@ -188,7 +224,7 @@ function SubsidiariesPage() {
   return (
     <>
       <ScaleLock as="main" viewport="min" bg="bg-navy" className="relative text-mist px-4 pt-[140px] pb-24 md:px-8 md:pt-[180px] md:pb-32">
-        <div className="max-w-[1440px] mx-auto">
+        <div ref={revealRef} className="max-w-[1440px] mx-auto">
           <div className="text-center max-w-[356px] md:max-w-[695px] mx-auto">
             <h1
               ref={titleRef}
@@ -208,6 +244,7 @@ function SubsidiariesPage() {
 
           <div className="relative mt-24 md:mt-32">
             <div
+              ref={spineRef}
               aria-hidden="true"
               className="hidden md:block absolute top-0 bottom-0 left-1/2 -translate-x-1/2 w-[1px]"
               style={{
@@ -218,6 +255,7 @@ function SubsidiariesPage() {
 
             <div className="relative grid grid-cols-1 md:grid-cols-2 gap-x-[260px] gap-y-[38px] md:gap-y-[80px]">
               <div
+                data-reveal
                 className="relative md:w-[429px] md:justify-self-end md:col-start-1 md:row-start-1"
               >
                 <SubsidiaryCard
@@ -244,6 +282,7 @@ function SubsidiariesPage() {
               </div>
 
               <div
+                data-reveal
                 className="relative md:w-[429px] md:justify-self-start md:col-start-2 md:row-start-2"
               >
                 <SubsidiaryCard
@@ -270,6 +309,7 @@ function SubsidiariesPage() {
               </div>
 
               <div
+                data-reveal
                 className="relative md:w-[429px] md:justify-self-end md:col-start-1 md:row-start-3"
               >
                 <SubsidiaryCard
@@ -289,7 +329,9 @@ function SubsidiariesPage() {
             </div>
           </div>
 
-          <div className="mt-24 md:mt-[232px] max-w-[1130px] mx-auto bg-[#FFFFFF05] rounded-[6px] px-[16px] py-[54px] md:px-[70px] md:py-[80px] flex flex-col gap-12 md:gap-[70px]">
+          {/* Revealed as one block, like the cards above — the panel reads as a
+              single card, so staggering its parts would fight that. */}
+          <div data-reveal className="mt-24 md:mt-[232px] max-w-[1130px] mx-auto bg-[#FFFFFF05] rounded-[6px] px-[16px] py-[54px] md:px-[70px] md:py-[80px] flex flex-col gap-12 md:gap-[70px]">
             <div className="flex gap-[28px]">
               <div
                 aria-hidden="true"
@@ -318,9 +360,7 @@ function SubsidiariesPage() {
                   )}
                 </span>
               </p>
-              <p
-                className="m-0 text-[16px] md:text-[22px] leading-[1.25] tracking-[0] text-mist max-w-[470px]"
-              >
+              <p className="m-0 text-[16px] md:text-[22px] leading-[1.25] tracking-[0] text-mist max-w-[470px]">
                 <span className="opacity-80">{what.right}</span>
               </p>
             </div>
