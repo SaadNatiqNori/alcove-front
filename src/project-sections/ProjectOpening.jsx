@@ -2,7 +2,7 @@ import { cloneElement, useEffect, useLayoutEffect, useRef, useState } from 'reac
 import { gsap } from 'gsap'
 import { ScrollTrigger } from 'gsap/ScrollTrigger'
 import { prefersReducedMotion } from './motion'
-import { useScale } from '../useScale'
+import { useScale, useIsTabletPortrait } from '../useScale'
 import { DESKTOP_MIN } from '../breakpoints'
 
 gsap.registerPlugin(ScrollTrigger)
@@ -20,7 +20,12 @@ gsap.registerPlugin(ScrollTrigger)
 function ProjectOpening({ hero, banner }) {
   const rootRef = useRef(null)
   const heroWrapRef = useRef(null)
-  const scale = useScale()
+  // iPad portrait renders the stage 1:1, matching the hero and banner inside it
+  // (both pass ScaleLock's `unlockTablet`). The reveal geometry below is all
+  // derived from `scale`, so the whole scrub follows without further changes.
+  const isTablet = useIsTabletPortrait()
+  const zoomScale = useScale()
+  const scale = isTablet ? 1 : zoomScale
 
   const [cinematic, setCinematic] = useState(
     () => window.matchMedia(`(min-width: ${DESKTOP_MIN}px)`).matches && !prefersReducedMotion()
@@ -58,8 +63,10 @@ function ProjectOpening({ hero, banner }) {
       // Resting geometry, derived from the CSS rather than sampled from the
       // DOM: sampling would bake in mid-scrub inline values whenever a
       // ScrollTrigger refresh (resize, late image load) lands while the
-      // page is part-way through the animation. Cinematic mode only runs
-      // ≥768px, so the md: variants apply (px-10, mt-[68px]).
+      // page is part-way through the animation. Cinematic mode runs ≥768px,
+      // which includes iPad portrait — where `md:` does NOT match. The banner
+      // therefore carries `tablet:px-10 tablet:mt-[68px]` alongside its md:
+      // variants, so these two constants describe the resting CSS in both.
       const sidePad = 40
       const restBoxH = () => (Math.min(1200, vw() - sidePad * 2) * 5) / 16
 

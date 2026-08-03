@@ -175,23 +175,24 @@ function ProjectGallery({
 
   return (
     <ScaleLock
+      unlockTablet
       innerRef={rootRef}
       fill
       bg="bg-[#0E0E0E]"
-      className="relative flex flex-col items-center justify-center overflow-hidden text-mist pt-[84px] pb-[72px] md:pt-36 md:pb-10 md:min-h-[calc(100vh/var(--scale))]"
+      className="relative flex flex-col items-center justify-center overflow-hidden text-mist pt-[84px] tablet:pt-[102px] pb-[72px] tablet:pb-[28px] md:pt-36 md:pb-10 tablet:min-h-[calc(100vh/var(--scale))] md:min-h-[calc(100vh/var(--scale))]"
     >
-      <div className="px-6 md:px-10 flex flex-col items-center text-center">
+      <div className="px-6 tablet:px-10 md:px-10 flex flex-col items-center text-center">
         {/* Same pill as the Contact page badge, recoloured for the dark section
             (light ink + soft light border instead of the dark-on-light ink). */}
         <span
           data-gallery-item
-          className="inline-flex h-[24px] items-center justify-center gap-[10px] rounded-[31px] border-[0.5px] border-mist/40 px-[9px] pb-[7px] pt-[10px] text-center font-['Akkurat_Mono',monospace] text-[11px] md:text-[14px] font-medium uppercase leading-[1.15] tracking-[-0.28px] text-mist"
+          className="inline-flex h-[24px] items-center justify-center gap-[10px] rounded-[31px] border-[0.5px] border-mist/40 px-[9px] pb-[7px] pt-[10px] text-center font-['Akkurat_Mono',monospace] text-[11px] tablet:text-[13px] md:text-[14px] font-medium uppercase leading-[1.15] tracking-[-0.28px] text-mist"
         >
           {eyebrow}
         </span>
         <h2
           data-gallery-item
-          className="m-0 mt-[23px] md:mt-7 text-center text-[32px] md:text-[50px] font-[420] leading-[1] tracking-[-0.04em] text-mist"
+          className="m-0 mt-[23px] tablet:mt-7 md:mt-7 text-center text-[32px] tablet:text-[36px] md:text-[50px] font-[420] leading-[1] tracking-[-0.04em] text-mist"
           style={{
             fontFamily: "'Season Mix VF', serif",
             textBoxTrim: 'trim-both',
@@ -208,7 +209,7 @@ function ProjectGallery({
         ref={scrollRef}
         data-gallery-item
         data-horizontal-scroll
-        className="mt-10 md:mt-12 w-full overflow-x-auto overflow-y-hidden flex cursor-grab select-none [&::-webkit-scrollbar]:hidden"
+        className="mt-10 tablet:mt-9 md:mt-12 w-full overflow-x-auto overflow-y-hidden flex cursor-grab select-none [&::-webkit-scrollbar]:hidden"
         style={{
           // Mobile: wide card aligned to a 16px start gutter, with 16px gap and
           // a 16px peek of the next card (card = 100vw − 16 − 16 − 16). Desktop
@@ -236,7 +237,11 @@ function ProjectGallery({
             <img
               src={img.src}
               alt={img.alt ?? ''}
-              className="block w-full h-[193px] md:h-[440px] object-cover"
+              // tablet: `isDesktop` above is a bare min-width:768 check, so an
+              // iPad already gets the centred 64vw peek-carousel — a 655px
+              // slide. 313px keeps that slide at desktop's 2.09:1 crop instead
+              // of the phone's 193px, which would letterbox it to 3.4:1.
+              className="block w-full h-[193px] tablet:h-[313px] md:h-[440px] object-cover"
               draggable="false"
             />
           </div>
