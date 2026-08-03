@@ -435,7 +435,9 @@ function CardsSection() {
           <main className="relative h-full max-w-[1440px] mx-auto flex flex-col bg-navy px-4 pb-8 pt-[88px] text-[#d6deea] md:px-8 md:py-12">
           <div className="relative mx-auto flex flex-1 items-center max-w-[1440px] w-full">
             <section ref={heroTextRef} aria-label="Company introduction">
-              <p className="m-0 text-[34px] font-normal not-italic leading-[110%] tracking-[-0.01em] md:text-[58px]">
+              {/* tablet: iPad portrait zooms the 430px mobile canvas by
+                  1.79-2.38x, so the phone's 34px intro renders 61-81px. */}
+              <p className="m-0 text-[34px] tablet:text-[24px] font-normal not-italic leading-[110%] tracking-[-0.01em] md:text-[58px]">
                 {words.map((word, i) => {
                   const cleanWord = word.replace(/[.,]/g, '')
                   const isAccent = ACCENT_WORDS.has(cleanWord)
@@ -487,14 +489,14 @@ function CardsSection() {
                     className="mb-3 text-[16px] leading-none tracking-[-0.01em] text-gold md:text-[22.4px]"
                     style={{ fontFamily: "'Season Mix-TRIAL', serif" }}
                   >
-                    <img src={logoYellow} alt="Alcove" className="w-auto h-[14px] md:h-[24px]" />
+                    <img src={logoYellow} alt="Alcove" className="w-auto h-[14px] tablet:h-[10px] md:h-[24px]" />
                   </p>
 
                   <h3
                     ref={(el) => {
                       if (el) cardTitleRefs.current[card.title] = el
                     }}
-                    className="m-0 text-[44px] font-normal tracking-[-0.01em] leading-[120%] text-gold md:text-[58px]"
+                    className="m-0 text-[44px] tablet:text-[30px] font-normal tracking-[-0.01em] leading-[120%] text-gold md:text-[58px]"
                     style={{ fontFamily: "'Season Mix-TRIAL', serif" }}
                   >
                     {card.title}
@@ -506,7 +508,7 @@ function CardsSection() {
                     }}
                     className="mt-4 md:mt-auto"
                   >
-                    <p className=" w-[80%] pe-4 text-[14px] font-normal leading-[140%] tracking-[0] text-mist md:text-[16px] md:leading-[120%]">
+                    <p className=" w-[80%] pe-4 text-[14px] tablet:text-[11px] font-normal leading-[140%] tracking-[0] text-mist md:text-[16px] md:leading-[120%]">
                       {card.description}
                     </p>
                   </div>

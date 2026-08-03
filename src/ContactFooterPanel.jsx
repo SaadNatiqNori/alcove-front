@@ -10,11 +10,18 @@ import logo from './assets/Logo.svg'
 // The mobile ALCOVE wordmark is shared with the hero (HeroSustainable), which
 // authors its mobile canvas at a 430px reference and scales it by width/430.
 // The footer has no such wrapper, so it reproduces the same result directly:
-// 75px tall at 430px+ and 75 × width/430 below it (17.4419vw), height-driven
+// 75px tall at 430px+ and 75 × width/430 below it (22.4419vw), height-driven
 // with the mask contained and centred — which also fixes the ink width, so both
 // wordmarks land at the same size and the same centre line. The matching
-// min(40px, 9.3023vw) bottom gap is on mainClass.
-const MOBILE_ALCOVE = 'max-md:aspect-auto max-md:[height:min(110px,17.4419vw)]'
+// min(40px, 9.3023vw) bottom gap is on mainClass, home only (see mobilePad).
+//
+// The height cap is the one part that differs by placement: the home cover has
+// the full 553px strip to spend, so it takes the hero-matching 165px, while the
+// interior footer is a fit-content block in normal flow and caps at 105px. Both
+// keep the same 29.4419vw slope, so below ~357px wide they render identically.
+const MOBILE_ALCOVE_BASE = 'max-md:aspect-auto'
+const MOBILE_ALCOVE_HOME = 'max-md:[height:min(165px,29.4419vw)]'
+const MOBILE_ALCOVE_PAGE = 'max-md:[height:min(105px,29.4419vw)]'
 
 // fitMobile: on interior pages the footer is a normal-flow section, so below
 // the md breakpoint it collapses to a fit-content block (natural padding, a
@@ -71,21 +78,34 @@ function ContactFooterPanel({
     !centerDesktop && lockScale ? { paddingTop: `${150 / scale}px` } : undefined
   // Mobile spec (≈402×553 fit-content frame): 16px text inset, 116px top pad,
   // 97.4px gap from the button down to the ALCOVE mask. The wordmark itself is
-  // the shared mobile treatment described on MOBILE_ALCOVE below — same size,
-  // centring and bottom gap as the hero's (see HeroSustainable), so the two
-  // wordmarks read as one element across the page.
+  // the shared mobile treatment described on MOBILE_ALCOVE_* above — on home,
+  // same size, centring and bottom gap as the hero's (see HeroSustainable), so
+  // the two wordmarks read as one element across the page.
   // Filling the mobile strip is purely a height change — the strip is authored
   // in real pixels, so every spec value below still applies unaltered.
   const mobileH = fillMobile ? 'h-full' : 'h-auto'
+  // The home cover's 111px top inset is authored against its fixed 553px strip,
+  // so it stays home-only. Interior pages are a fit-content block in normal flow
+  // and get their own, smaller inset — but they still need one: at zero the
+  // cap-trimmed "Let's talk" line box starts at the panel's top edge and the
+  // section's overflow-hidden shaves the caps off. The bottom gap is shared (it
+  // pairs the wordmark with the hero's, see MOBILE_ALCOVE_* above).
+  const mobilePad = fillMobile
+    ? 'pt-[111px] max-md:[padding-bottom:min(40px,9.3023vw)]'
+    : 'max-md:pt-[72px] max-md:[padding-bottom:min(40px,9.3023vw)]'
   const mainClass = centerDesktop
-    ? `relative ${mobileH} md:h-full max-w-[1440px] mx-auto flex flex-col bg-navy px-[16px] max-md:[padding-bottom:min(40px,9.3023vw)] pt-[111px] text-mist md:px-8 md:pb-[31px] md:pt-0`
+    ? `relative ${mobileH} md:h-full max-w-[1440px] mx-auto flex flex-col bg-navy px-[16px] ${mobilePad} text-mist md:px-8 md:pb-[31px] md:pt-0`
     : fitMobile
-      ? `relative ${mobileH} md:h-full max-w-[1440px] mx-auto flex flex-col bg-navy px-[16px] max-md:[padding-bottom:min(40px,9.3023vw)] pt-[111px] text-mist md:px-8 md:pb-[31px] md:pt-[150px]`
+      ? `relative ${mobileH} md:h-full max-w-[1440px] mx-auto flex flex-col bg-navy px-[16px] ${mobilePad} text-mist md:px-8 md:pb-[31px] md:pt-[150px]`
       : 'relative h-full max-w-[1440px] mx-auto flex flex-col bg-navy px-4 pb-[31px] pt-[150px] text-mist md:px-8'
   // Desktop rhythm for the interior section is driven by the two spacers below,
-  // so the ALCOVE wrapper drops its own md gap (mt-0); mobile keeps mt-[97.4px].
+  // so the ALCOVE wrapper drops its own md gap (mt-0). On mobile the home cover
+  // needs no margin — its flex-1 slack already stretches the gap to fill the
+  // strip — but the interior block is fit-content, so the button would otherwise
+  // sit flush against the wordmark; 60px is the home 97.4 scaled to the smaller
+  // 105px wordmark.
   const alcoveWrapClass = centerDesktop
-    ? 'relative mt-[97.4px] md:mt-0'
+    ? `relative ${fillMobile ? '' : 'max-md:mt-[60px]'} md:mt-0`
     : fitMobile
       ? 'relative mt-[97.4px] md:mt-[13vh]'
       : 'relative mt-auto'
@@ -165,7 +185,9 @@ function ContactFooterPanel({
       <div className={alcoveWrapClass}>
         <div
           ref={alcoveRef}
-          className={`w-full aspect-[64/13] ${MOBILE_ALCOVE}`}
+          className={`w-full aspect-[64/13] ${MOBILE_ALCOVE_BASE} ${
+            fillMobile ? MOBILE_ALCOVE_HOME : MOBILE_ALCOVE_PAGE
+          }`}
           style={{
             WebkitMaskImage: `url("${logo}")`,
             maskImage: `url("${logo}")`,
