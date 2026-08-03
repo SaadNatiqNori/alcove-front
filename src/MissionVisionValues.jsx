@@ -3,7 +3,7 @@ import { gsap } from 'gsap'
 import { ScrollTrigger } from 'gsap/ScrollTrigger'
 import { useContent } from './api'
 import ContactFooterPanel from './ContactFooterPanel'
-import { useScale, useIsDesktop } from './useScale'
+import { useScale, useIsDesktop, useIsTabletPortrait } from './useScale'
 import { REVEAL, prefersReducedMotion, revealFooterPanel } from './motion'
 import { cubicEase } from './easings'
 
@@ -165,11 +165,18 @@ function Card({ refProp, title, description, isValues, values, illustration, zIn
         {/* Phones stack title → body → drawing in one column; desktop puts the
             title in a fixed 460px column beside the text. iPad portrait gets its
             own two-column split — title and body stacked top-aligned on the
-            left, the drawing in a fixed 170px column on the right. The body and
+            left, the drawing in a fixed 230px column on the right. The body and
             drawing share a wrapper for the other two layouts, so `tablet:contents`
             dissolves it there and lets both become grid items in their own right;
-            explicit col/row starts then place all three. */}
-        <div className="mt-6 grid grid-cols-1 tablet:grid-cols-[minmax(0,1fr)_170px] md:grid-cols-[460px_1fr] gap-[14px] tablet:gap-x-[18px] tablet:gap-y-[10px] md:gap-16 tablet:items-start">
+            explicit col/row starts then place all three.
+
+            230 of the 398px canvas is the drawing's share, and it is load-bearing
+            rather than taste: side by side, the card's content is only about half
+            as tall as the stacked phone one, which is exactly what leaves the dead
+            band under it. The drawing is the tall element, so widening its column
+            is the only thing that fills that height back — and 230/150 also lands
+            on the reference's roughly 30/70 text-to-image split. */}
+        <div className="mt-6 grid grid-cols-1 tablet:grid-cols-[minmax(0,1fr)_230px] md:grid-cols-[460px_1fr] gap-[14px] tablet:gap-x-[18px] tablet:gap-y-[10px] md:gap-16 tablet:items-start">
           {/* data-card-* mark the three reveal parts; the cover effect fades and
               rises them in as the card comes into view (see revealCard). */}
           <h3
@@ -226,6 +233,14 @@ function MissionVisionValues() {
   // wrapper's sizing still differs by breakpoint (see the render).
   const isDesktop = useIsDesktop()
 
+  // iPad portrait only. Its stage is the same viewport height as everyone
+  // else's, but the two-column card puts title, copy and drawing side by side
+  // rather than stacked, so the content fills barely a third of the panel and
+  // the dead band under it is roughly double the phone's. PEEK is the knob for
+  // exactly that band (see below) — the tablet gets the largest head start the
+  // timeline can carry.
+  const isTabletPortrait = useIsTabletPortrait()
+
   useLayoutEffect(() => {
     const ctx = gsap.context(() => {
       // Synchronized scroll-through, fully scrubbed so position is a pure
@@ -248,8 +263,25 @@ function MissionVisionValues() {
       // viewport (yPercent 100), each incoming card begins already PEEK% up, so it
       // is visible/rising sooner and the dead space before it arrives shrinks —
       // "the next tab shows a little earlier before the previous scrolls out".
-      const DRIFT = -50 // outgoing lag; smaller = stronger cover, larger = gentler dock
-      const PEEK = 33   // how far up (%) the next tab already is when its turn begins; bigger = less gap / earlier reveal, but shows more of the next tab at the start
+      // How far up (%) the next tab already is when its turn begins; bigger =
+      // less gap / earlier reveal, but shows more of the next tab at the start.
+      //
+      // 50 is the ceiling, not a taste call: riseDur below is 1/(1 - PEEK/100),
+      // and Values' rise is placed at `2 - riseDur`. Past 50 that position goes
+      // negative — the tween would already be part-played at the section's first
+      // frame, so Values (z-30, above Vision) would hang its divider across
+      // Vision's panel from the very start.
+      const PEEK = isTabletPortrait ? 50 : 33
+
+      // Outgoing lag; smaller = stronger cover, larger = gentler dock. What
+      // actually produces the "rides up and over" read is the DIFFERENCE between
+      // the incoming card's travel (100 - PEEK) and this — 67 vs 50, a 17-point
+      // lead. DRIFT is therefore derived from PEEK, not set independently: at
+      // PEEK 50 a flat -50 would give the incoming card the same 50 points of
+      // travel as the outgoing, the two would move as one rigid sheet, and the
+      // parallax would disappear entirely.
+      const LEAD = 17
+      const DRIFT = -(100 - PEEK - LEAD)
       const layers = [
         missionRef.current,
         visionRef.current,
@@ -446,10 +478,11 @@ function MissionVisionValues() {
     })
 
     return () => ctx.revert()
-    // Nothing in here branches on the breakpoint any more, but the scale
-    // wrapper's sizing does, so a flip changes the stage geometry underneath
-    // these triggers — rebuild rather than rely on a refresh catching it.
-  }, [isDesktop])
+    // The scale wrapper's sizing branches on the breakpoint, so a flip changes
+    // the stage geometry underneath these triggers — rebuild rather than rely on
+    // a refresh catching it. PEEK is read once when the timeline is built, so
+    // the tablet flag has to rebuild it too.
+  }, [isDesktop, isTabletPortrait])
 
   return (
     <>
@@ -483,12 +516,12 @@ function MissionVisionValues() {
                     <img
                       src={mvv.mission.image}
                       alt=""
-                      className="w-full max-w-[313px] tablet:max-w-[170px] h-auto"
+                      className="w-full max-w-[313px] tablet:max-w-[230px] h-auto"
                     />
                   ) : (
                     // tablet sizes keep each drawing's own viewBox ratio inside
-                    // the 170px right-hand column, so nothing letterboxes.
-                    <MissionIllustration className="w-[280px] h-[300px] tablet:w-[170px] tablet:h-[179px] max-w-full" />
+                    // the 230px right-hand column, so nothing letterboxes.
+                    <MissionIllustration className="w-[280px] h-[300px] tablet:w-[230px] tablet:h-[243px] max-w-full" />
                   )
                 }
               />
@@ -502,10 +535,10 @@ function MissionVisionValues() {
                     <img
                       src={mvv.vision.image}
                       alt=""
-                      className="w-full max-w-[313px] tablet:max-w-[170px] h-auto"
+                      className="w-full max-w-[313px] tablet:max-w-[230px] h-auto"
                     />
                   ) : (
-                    <VisionIllustration className="w-[480px] h-[240px] tablet:w-[170px] tablet:h-[88px] max-w-full" />
+                    <VisionIllustration className="w-[480px] h-[240px] tablet:w-[230px] tablet:h-[119px] max-w-full" />
                   )
                 }
               />
@@ -520,10 +553,10 @@ function MissionVisionValues() {
                     <img
                       src={mvv.values.image}
                       alt=""
-                      className="w-full max-w-[313px] tablet:max-w-[170px] h-auto"
+                      className="w-full max-w-[313px] tablet:max-w-[230px] h-auto"
                     />
                   ) : (
-                    <ValuesIllustration className="w-[480px] h-[320px] tablet:w-[170px] tablet:h-[113px] max-w-full" />
+                    <ValuesIllustration className="w-[480px] h-[320px] tablet:w-[230px] tablet:h-[153px] max-w-full" />
                   )
                 }
               />
@@ -562,12 +595,22 @@ function MissionVisionValues() {
               rather than a fourth full-screen panel. It sits outside the scale
               wrapper on purpose: the 553px and the panel's other mobile values
               are authored in real pixels, and the wrapper's width/430 scale
-              would shrink them. */}
+              would shrink them.
+
+              553px is 59% of the 932px phone the strip is drawn against, and it
+              is that FRACTION the last handover depends on: the strip has to
+              reach up far enough to meet the Values card as it drifts away, or a
+              band of bare page shows between the two. A tablet is much taller, so
+              the same 553px would land at 47% and open exactly that band — hence
+              59vh here, the phone's proportion restated as one. `fillMobile`
+              pours the extra height into the panel's flex slack, so every
+              real-pixel value inside it is untouched, and the footer's own
+              reveal trigger measures the strip live (stripStart). */}
           {!isDesktop && (
             <div
               ref={footerRef}
               style={{ zIndex: 40 }}
-              className="absolute inset-x-0 bottom-0 h-[553px] will-change-transform"
+              className="absolute inset-x-0 bottom-0 h-[553px] tablet:h-[59vh] will-change-transform"
             >
               <ContactFooterPanel
                 cta={cta}
