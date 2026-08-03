@@ -5,7 +5,7 @@ import { ScrollTrigger } from 'gsap/ScrollTrigger'
 import { IoArrowForward } from 'react-icons/io5'
 import ContactSection from './ContactSection'
 import { ScaleLock } from './ScaleLock'
-import { useScale } from './useScale'
+import { useScale, useIsTabletPortrait } from './useScale'
 import { cubicEase } from './easings'
 import { useContent, useSettings, postContact } from './api'
 
@@ -52,6 +52,13 @@ const DETAILS_FALLBACK = [
 
 const DIVIDERS = [0, 20, 40, 60, 80, 100]
 
+// iPad portrait runs the same dashed frame on three columns instead of five.
+// Five does not fit: at 768 it leaves 114px of content per column against a
+// 146px widest line, and `partnerships@alcove` has no break opportunity, so it
+// spills across the dividers rather than wrapping. Three gives 198px at 768 and
+// 284px at 1024 — comfortable across the whole tablet range.
+const DIVIDERS_TABLET = [0, 33.3333, 66.6667, 100]
+
 // Exact dashed stroke from the design: 1px line, 2px dash, 2px gap.
 // CSS `border-dashed` can't set dash length, so paint it with a gradient.
 const DASH_V =
@@ -77,7 +84,7 @@ function Field({ label, type = 'text', value, onChange, trailing, error }) {
             onChange={onChange}
             placeholder={label}
             aria-invalid={error ? 'true' : undefined}
-            className="min-w-0 flex-1 bg-transparent text-[18px] md:text-[19px] leading-none text-[#1C2D4F] outline-none placeholder:text-[#1C2D4F]/45"
+            className="min-w-0 flex-1 bg-transparent text-[18px] tablet:text-[19px] md:text-[19px] leading-none text-[#1C2D4F] outline-none placeholder:text-[#1C2D4F]/45"
           />
           {trailing}
         </div>
@@ -157,7 +164,15 @@ function ContactPage() {
   // effect): the header pins via position:sticky, but ScaleLock wraps the page
   // in transform:scale, and a sticky element under a scaled ancestor drifts down
   // by (scale-1)*scrollY instead of holding still.
-  const scale = useScale()
+  //
+  // iPad portrait opts out of the shared tablet zoom lock, as About and
+  // Subsidiaries do: ScaleLock would render the 430px mobile canvas at 2.38x,
+  // which put a 105px title and a 948px-wide form on the page. Scale 1 also
+  // makes the drift compensation below a no-op there — correct, because at
+  // scale 1 the sticky header does not drift in the first place.
+  const isTablet = useIsTabletPortrait()
+  const zoomScale = useScale()
+  const scale = isTablet ? 1 : zoomScale
   const scaleRef = useRef(scale)
 
   const headerRef = useRef(null)
@@ -304,27 +319,28 @@ function ContactPage() {
     <ScaleLock
       as="main"
       bg="bg-[#E6EBF0]"
+      scale={scale}
       className="text-[#1C2D4F]"
       style={{ fontFamily: "'Season Sans-TRIAL', sans-serif" }}
     >
       {/* Form area — the header pins while the card scrolls up over it.
           The section's top padding matches the sticky offset so the header
           doesn't jump on first paint. */}
-      <section className="relative px-4 pt-[128px] md:pt-[140px] pb-[150px]">
+      <section className="relative px-4 pt-[128px] tablet:pt-[100px] md:pt-[140px] pb-[150px] tablet:pb-[107px]">
         <div
           ref={headerRef}
-          className="sticky top-[128px] md:top-[140px] z-0 flex flex-col items-center text-center"
+          className="sticky top-[128px] tablet:top-[100px] md:top-[140px] z-0 flex flex-col items-center text-center"
         >
           <span className="inline-flex items-center justify-center gap-[10px] rounded-[31px] border-[0.5px] border-[#1C2D4F] px-[9px] pb-[7px] pt-[10px] font-['Akkurat_Mono',monospace] text-[14px] font-medium leading-[1.15] tracking-[-0.28px] text-center uppercase text-[#1C2D4F] h-[24px]">
             {header.badge}
           </span>
           <h1
-            className="m-0 mt-[22px] text-center text-[44px] md:text-[50px] font-normal leading-[1.05] tracking-[-1px] text-[#1C2D4F]"
+            className="m-0 mt-[22px] text-center text-[44px] tablet:text-[36px] md:text-[50px] font-normal leading-[1.05] tracking-[-1px] text-[#1C2D4F]"
             style={{ fontFamily: "'Season Mix VF', 'Season Mix-TRIAL', serif" }}
           >
             {header.title}
           </h1>
-            <p className="m-0 mt-[22px] text-center text-[14px] md:text-[16px] leading-[1.15] tracking-[-0.16px] max-w-[352px] md:max-w-[374px] text-[#1C2D4F]">
+            <p className="m-0 mt-[22px] text-center text-[14px] tablet:text-[16px] md:text-[16px] leading-[1.15] tracking-[-0.16px] max-w-[352px] tablet:max-w-[374px] md:max-w-[374px] text-[#1C2D4F]">
             {header.subtitle}
           </p>
         </div>
@@ -333,7 +349,10 @@ function ContactPage() {
           ref={cardRef}
           onSubmit={handleSubmit}
           noValidate
-          className="relative z-10 mx-auto mt-[72px] md:mt-[96px] w-full max-w-[616px] rounded-[8px] bg-[#D7E0E8] px-6 py-10 md:min-h-[446px] md:px-[72px] md:pt-[68px] md:pb-[56px]"
+          // tablet: the card holds its 616px desktop width rather than scaling
+          // with the page, so its padding and type stay at the desktop values —
+          // a full-width card with page-ratio type would read half-empty.
+          className="relative z-10 mx-auto mt-[72px] tablet:mt-[68px] md:mt-[96px] w-full max-w-[616px] rounded-[8px] bg-[#D7E0E8] px-6 py-10 tablet:min-h-[446px] tablet:px-[72px] tablet:pt-[68px] tablet:pb-[56px] md:min-h-[446px] md:px-[72px] md:pt-[68px] md:pb-[56px]"
         >
           <div className="flex flex-col gap-[40px]">
             <Field label={formLabels.nameLabel} value={form.name} onChange={update('name')} error={errors.name} />
@@ -358,7 +377,7 @@ function ContactPage() {
           </div>
 
           <p
-            className="mx-auto mt-10 max-w-[274px] text-center text-[12px] md:text-[16px] font-normal leading-[1.15] tracking-[-0.01em] text-[#1C2D4F]/45"
+            className="mx-auto mt-10 max-w-[274px] text-center text-[12px] tablet:text-[16px] md:text-[16px] font-normal leading-[1.15] tracking-[-0.01em] text-[#1C2D4F]/45"
             style={{ fontFamily: "'Season Sans-TRIAL', sans-serif" }}
           >
             By clicking send message, you acknowledge your data will be processed
@@ -432,18 +451,21 @@ function ContactPage() {
           lines flush at the corners (no overshoot); first/last hug the left/right
           edges. Text is left-aligned; columns vertically centered. Dashes are an
           exact 2px-on / 2px-off, 1px stroke. */}
-      <footer ref={footerRef} className="px-4 md:px-[145px] pb-[137px]">
-        <div className="relative w-full py-12 md:py-16">
+      {/* tablet: the same closed dashed rectangle as desktop, not the phone's
+          two-column cross — but on three columns (see DIVIDERS_TABLET), with the
+          frame inset dropped from desktop's 145px to 40px. */}
+      <footer ref={footerRef} className="px-4 tablet:px-[40px] md:px-[145px] pb-[137px] tablet:pb-[97px]">
+        <div className="relative w-full py-12 tablet:py-16 md:py-16">
           {/* top + bottom frame lines — overshoot the outer verticals by 10px
               so the corners read as crossings, not closed joins */}
           <span
             aria-hidden="true"
-            className="pointer-events-none absolute -inset-x-[16px] top-0 hidden h-px md:block"
+            className="pointer-events-none absolute -inset-x-[16px] top-0 hidden h-px tablet:block md:block"
             style={{ backgroundImage: DASH_H }}
           />
           <span
             aria-hidden="true"
-            className="pointer-events-none absolute -inset-x-[16px] bottom-0 hidden h-px md:block"
+            className="pointer-events-none absolute -inset-x-[16px] bottom-0 hidden h-px tablet:block md:block"
             style={{ backgroundImage: DASH_H }}
           />
 
@@ -453,7 +475,7 @@ function ContactPage() {
               open cross grid in the design (no outer frame on mobile). */}
           <span
             aria-hidden="true"
-            className="pointer-events-none absolute inset-y-0 left-1/2 w-px md:hidden"
+            className="pointer-events-none absolute inset-y-0 left-1/2 w-px tablet:hidden md:hidden"
             style={{ backgroundImage: DASH_V }}
           />
 
@@ -471,7 +493,20 @@ function ContactPage() {
             />
           ))}
 
-          <div className="grid grid-cols-2 gap-x-0 gap-y-14 md:grid-cols-5 md:gap-x-4 md:gap-y-0">
+          {/* the same dividers on thirds, for the tablet three-column grid */}
+          {DIVIDERS_TABLET.map((left) => (
+            <span
+              key={`t-${left}`}
+              aria-hidden="true"
+              className="pointer-events-none absolute -top-[16px] -bottom-[16px] hidden w-px tablet:block md:hidden"
+              style={{
+                ...(left === 100 ? { right: 0 } : { left: `${left}%` }),
+                backgroundImage: DASH_V,
+              }}
+            />
+          ))}
+
+          <div className="grid grid-cols-2 gap-x-0 gap-y-14 tablet:grid-cols-3 tablet:gap-x-4 tablet:gap-y-10 md:grid-cols-5 md:gap-x-4 md:gap-y-0">
             {details.map((col, i) => {
               // Mobile draws a horizontal divider centered in the row gap below
               // every cell that isn't in the last row, so the two-column grid
@@ -482,12 +517,12 @@ function ContactPage() {
                 <div
                   key={col.label}
                   data-col
-                  className="relative flex h-[213px] flex-col items-center justify-center px-4 text-center md:h-auto md:items-start md:px-[30px] md:text-left"
+                  className="relative flex h-[213px] flex-col items-center justify-center px-4 text-center tablet:h-auto tablet:items-start tablet:px-[10px] tablet:text-left md:h-auto md:items-start md:px-[30px] md:text-left"
                 >
                   {notLastRow && (
                     <span
                       aria-hidden="true"
-                      className="pointer-events-none absolute inset-x-0 -bottom-7 h-px md:hidden"
+                      className="pointer-events-none absolute inset-x-0 -bottom-7 h-px tablet:hidden md:hidden"
                       style={{ backgroundImage: DASH_H }}
                     />
                   )}

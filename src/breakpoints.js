@@ -46,6 +46,14 @@ export const DESKTOP_QUERY =
 export const MOBILE_QUERY =
   `(max-width: ${DESKTOP_MIN - 1}px), ${TABLET_PORTRAIT_QUERY}`
 
+// The navbar is the one component that keeps its desktop form on tablet
+// portrait: the full links pill reads better on an iPad than a burger, and it
+// fits comfortably at its authored size on every iPad width. So it opts out of
+// `md:` and uses this instead — plain min-width, i.e. DESKTOP_QUERY plus tablet
+// portrait. It is deliberately navbar-only; the rest of the page still runs the
+// mobile layout there (see TABLET_PORTRAIT_QUERY).
+export const NAV_DESKTOP_QUERY = `(min-width: ${DESKTOP_MIN}px)`
+
 // Tailwind's `lg:` (min-width: 1024px) ANDed with DESKTOP_QUERY, distributed
 // over the OR list. Without this, iPad Pro 12.9" portrait (1024px wide) would
 // match `lg:` while failing `md:` — a layout that exists nowhere in the design.

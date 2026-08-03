@@ -66,8 +66,8 @@ function CarIllustration({ className }) {
 // vertically centered on the stage's center line, which is also constant.
 function Slide({ heading, bodyLeft, bodyRight, image }) {
   return (
-    <div className="h-full w-full px-[16px] md:px-14">
-      <div className="mx-auto grid max-w-[1600px] grid-cols-1 gap-12 md:h-full md:grid-cols-2 md:gap-16">
+    <div className="h-full w-full px-[16px] tablet:px-10 md:px-14">
+      <div className="mx-auto grid max-w-[1600px] grid-cols-1 gap-12 tablet:gap-10 md:h-full md:grid-cols-2 md:gap-16">
         {/* Copy — flows from the stage top so the title position never shifts */}
         <div>
           <div className="relative pt-[6px] pb-1 md:pt-[9px]">
@@ -83,7 +83,7 @@ function Slide({ heading, bodyLeft, bodyRight, image }) {
             </div>
             <h2
               data-anim
-              className="m-0 whitespace-pre-line pl-6 md:pl-8 text-[34px] md:text-[52px] font-normal leading-[1.05] tracking-[-0.01em] text-mist"
+              className="m-0 whitespace-pre-line pl-6 tablet:pl-8 md:pl-8 text-[34px] tablet:text-[37px] md:text-[52px] font-normal leading-[1.05] tracking-[-0.01em] text-mist"
               style={{ fontFamily: "'Season Mix-TRIAL', serif" }}
             >
               {heading}
@@ -91,12 +91,12 @@ function Slide({ heading, bodyLeft, bodyRight, image }) {
           </div>
 
           {(bodyLeft || bodyRight) && (
-            <div className="mt-10 md:mt-14 grid max-w-[580px] grid-cols-1 gap-8 sm:grid-cols-2 md:gap-10 pl-0 md:pl-8">
+            <div className="mt-10 tablet:mt-12 md:mt-14 grid max-w-[580px] grid-cols-1 gap-8 sm:grid-cols-2 md:gap-10 pl-0 tablet:pl-8 md:pl-8">
               {bodyLeft && (
                 <p
                   data-anim
                   data-anim-speed="1.2"
-                  className="m-0 text-[15px] md:text-[15px] leading-[1.2] tracking-[0] text-[#E2EAF2]"
+                  className="m-0 text-[15px] tablet:text-[16px] md:text-[15px] leading-[1.2] tracking-[0] text-[#E2EAF2]"
                 >
                   {bodyLeft}
                 </p>
@@ -106,7 +106,7 @@ function Slide({ heading, bodyLeft, bodyRight, image }) {
                   data-anim
                   data-anim-speed="1.2"
                   data-anim-shift="1.5"
-                  className="m-0 text-[15px] md:text-[15px] leading-[1.2] tracking-[0] text-[#E2EAF2]"
+                  className="m-0 text-[15px] tablet:text-[16px] md:text-[15px] leading-[1.2] tracking-[0] text-[#E2EAF2]"
                 >
                   {bodyRight}
                 </p>
@@ -353,6 +353,7 @@ function ProjectShowcase({ slides = [] }) {
 
   return (
     <ScaleLock
+      unlockTablet
       viewport={isMobile ? undefined : 'min'}
       innerRef={rootRef}
       bg="bg-black"
@@ -394,8 +395,8 @@ function ProjectShowcase({ slides = [] }) {
       {/* Pagination mirrors the slide grid so the dots sit centered directly
           under the illustration column (right on desktop, centered when stacked). */}
       {count > 1 && (
-        <div className="w-full px-[16px] md:px-14 pb-16 md:pb-0">
-          <div className="mx-auto grid max-w-[1600px] grid-cols-1 gap-12 md:grid-cols-2 md:gap-16">
+        <div className="w-full px-[16px] tablet:px-10 md:px-14 pb-16 tablet:pb-12 md:pb-0">
+          <div className="mx-auto grid max-w-[1600px] grid-cols-1 gap-12 tablet:gap-10 md:grid-cols-2 md:gap-16">
             <div className="hidden md:block" aria-hidden="true" />
             <div className="flex justify-center md:justify-end">
               <div className="mt-10 flex w-full max-w-[520px] flex-col items-center gap-8 md:mt-14">

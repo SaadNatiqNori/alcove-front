@@ -6,7 +6,12 @@ import ArrowIcon from './ArrowIcon'
 import { useRevealOnScroll } from './motion'
 import { useProjects, useContent } from './api'
 import { PROJECTS_DATA } from './projects'
-import { useScale, useIsDesktop, useScaledHeight } from './useScale'
+import {
+  useScale,
+  useIsDesktop,
+  useIsTabletPortrait,
+  useScaledHeight,
+} from './useScale'
 import { useLenis } from './SmoothScroll'
 
 gsap.registerPlugin(ScrollTrigger)
@@ -169,6 +174,10 @@ function PortfolioSlider() {
   // the layout predicate directly.
   const isDesktop = useIsDesktop()
   const isMobile = !isDesktop
+  // iPad portrait is a subset of `isMobile`: it keeps the mobile canvas and
+  // scale, but lays the cards out as a horizontal carousel like desktop rather
+  // than stacking them. Only the branches CSS cannot express read this.
+  const isTablet = useIsTabletPortrait()
   const wrapperRef = useRef(null)
   // Only the stacked (non-desktop) layout grows with its content; the desktop
   // slider is locked to one viewport by `md:h-screen`, so it needs no reserve.
@@ -196,12 +205,15 @@ function PortfolioSlider() {
   // mid-glide takes them over instead of fighting the lerp still running.
   const cancelGlideRef = useRef(null)
 
-  // Intro + cards reveal one by one. Desktop lays the cards out as a horizontal
-  // slider inside a single viewport, so they stagger off the section's trigger;
-  // mobile stacks them vertically, so each card waits for its own scroll-in.
+  // Intro + cards reveal one by one. Only the vertical stack gives each card its
+  // own trigger — there, a card genuinely owns a screenful. Both horizontal
+  // layouts (desktop and tablet) stagger off one shared trigger instead: a card
+  // parked off-screen to the RIGHT still sits inside the vertical trigger
+  // window, so per-item triggers would spend its entrance unseen and it would
+  // arrive already faded in.
   const revealRef = useRevealOnScroll(
-    [projects.map((p) => p.slug).join('|'), isMobile],
-    { each: isMobile }
+    [projects.map((p) => p.slug).join('|'), isMobile, isTablet],
+    { each: isMobile && !isTablet }
   )
 
   // Size each card to hug its own cover image: draw the image at a fixed height
@@ -488,11 +500,43 @@ function PortfolioSlider() {
   const checkAllCta = (
     <Link
       to="/projects"
-      className="group inline-flex w-fit h-[46px] items-center gap-[5px] rounded-[48px] border-[0.25px] border-navy bg-navy px-[14px] font-['Akkurat_Mono',monospace] text-[10px] font-medium uppercase leading-none text-mist no-underline transition-colors duration-200 ease-out hover:bg-transparent hover:text-navy"
+      className="group inline-flex w-fit h-[46px] tablet:h-[32px] items-center gap-[5px] tablet:gap-[4px] rounded-[48px] border-[0.25px] border-navy bg-navy px-[14px] tablet:px-[10px] font-['Akkurat_Mono',monospace] text-[10px] tablet:text-[8px] font-medium uppercase leading-none text-mist no-underline transition-colors duration-200 ease-out hover:bg-transparent hover:text-navy"
     >
       <span className="relative top-[1.5px]">{portfolio.ctaLabel}</span>
-      <ArrowIcon size={14} className="relative top-[0.5px]" />
+      {/* ArrowIcon sizes itself with an inline style, which no Tailwind class
+          can override — so the tablet size comes from the JS predicate. */}
+      <ArrowIcon size={isTablet ? 11 : 14} className="relative top-[0.5px]" />
     </Link>
+  )
+
+  // Heading + description + CTA. Desktop keeps it as the first item inside the
+  // card track (a column to the left of the cards); off desktop it sits above
+  // the track instead — on the 430px canvas a 240px in-track column would take
+  // most of the screen.
+  const introBlock = (
+    <>
+      {/* Off desktop the heading and CTA share the top row; on desktop the CTA
+          is hidden here (it lives at the column's foot) and the heading sits
+          alone. */}
+      <div className="flex items-start justify-between gap-4">
+        <h2
+          className="m-0 text-[30px] tablet:text-[22px] md:text-[44px] leading-[100%] tracking-[-0.02em] text-navy"
+          style={{ fontFamily: "'Season Mix VF', serif", fontWeight: 420 }}
+        >
+          {portfolio.heading[0]}
+          <br />
+          {portfolio.heading[1]}
+        </h2>
+        <div className="md:hidden">{checkAllCta}</div>
+      </div>
+      <p
+        className="m-0 text-[14px] tablet:text-[11px] leading-5 tablet:leading-[16px] text-navy"
+        style={{ fontFamily: "'Season Sans-TRIAL', sans-serif" }}
+      >
+        {portfolio.description}
+      </p>
+      <div className="hidden md:block">{checkAllCta}</div>
+    </>
   )
 
   return (
@@ -521,104 +565,118 @@ function PortfolioSlider() {
         {/* Content stays in the centered 1440 canvas (heading/intro align with
             every other section). Only the slider track below bleeds to the right
             viewport edge so the cards aren't cut short of it. */}
-        <main className="relative h-full max-w-[1440px] mx-auto flex flex-col justify-start md:justify-center bg-[#E6EBF0] pt-[88px] pb-14 text-[#1C2D4F] md:pt-[120px] md:pb-10">
-          <div
-            ref={(el) => {
-              scrollRef.current = el
-              revealRef.current = el
-            }}
-            data-horizontal-scroll
-            className="flex flex-col md:flex-row items-stretch gap-4 md:gap-2 px-4 md:pl-[38px] md:pr-2 md:overflow-x-auto md:overflow-y-hidden md:cursor-grab select-none [&::-webkit-scrollbar]:hidden"
-            style={{
-              scrollbarWidth: 'none',
-              WebkitOverflowScrolling: 'touch',
-              // Mobile stacks vertically, so let the page pan vertically; only
-              // the desktop horizontal slider claims the horizontal axis.
-              touchAction: isMobile ? 'auto' : 'pan-x',
-              overscrollBehavior: 'contain',
-              // Desktop: extend the track's right edge out to the viewport edge
-              // (negative margin = the right gutter, in canvas px) so the cards
-              // run/peek to the edge instead of stopping at the 1440 canvas.
-              marginRight: isMobile
-                ? undefined
-                : `calc((100vw / ${scale} - 1440px) / -2)`,
-            }}
-          >
-            {/* mr + the row's gap-2 (8px) = the 227.5px intro-to-cards gap */}
-            <div
-              data-reveal
-              className="flex-shrink-0 w-full md:w-[240px] flex flex-col gap-6 md:gap-[30px] py-4 md:mr-[219.5px]"
-            >
-              {/* On mobile the heading and CTA share the top row; on desktop the
-                  CTA is hidden here (it lives at the column's foot) and the
-                  heading sits alone. */}
-              <div className="flex items-start justify-between gap-4">
-                <h2
-                  className="m-0 text-[30px] md:text-[44px] leading-[100%] tracking-[-0.02em] text-navy"
-                  style={{ fontFamily: "'Season Mix VF', serif", fontWeight: 420 }}
-                >
-                  {portfolio.heading[0]}
-                  <br />
-                  {portfolio.heading[1]}
-                </h2>
-                <div className="md:hidden">{checkAllCta}</div>
-              </div>
-              <p
-                className="m-0 text-[14px] leading-5 text-navy"
-                style={{ fontFamily: "'Season Sans-TRIAL', sans-serif" }}
-              >
-                {portfolio.description}
-              </p>
-              <div className="hidden md:block">{checkAllCta}</div>
-            </div>
-
-            {projects.map((project, i) => (
-              <article
-                key={project.slug}
+        {/* tablet: the whole section is sized to land inside one iPad screen —
+            619 canvas px on an iPad Air, against the 662 the phone proportions
+            came to. Every tablet: override below is part of that budget. */}
+        <main className="relative h-full max-w-[1440px] mx-auto flex flex-col justify-start md:justify-center bg-[#E6EBF0] pt-[88px] tablet:pt-[64px] pb-14 tablet:pb-8 text-[#1C2D4F] md:pt-[120px] md:pb-10">
+          {/* The reveal root wraps BOTH the above-track intro and the track, so
+              the intro is still collected off desktop. Desktop trigger geometry
+              is untouched: the above-track intro is not rendered there at all,
+              so this wrapper's top edge is exactly the track's. */}
+          <div ref={revealRef} className="flex flex-col gap-4 tablet:gap-6">
+            {!isDesktop && (
+              <div
                 data-reveal
-                className="flex-shrink-0 w-full md:w-[496px] bg-navy px-6 py-8 md:px-[38px] md:py-10 flex flex-col gap-10 md:gap-[70px] text-mist"
+                className="w-full flex flex-col gap-6 tablet:gap-4 px-4 py-4 tablet:py-0"
               >
-                <div>
-                  <h3
-                    className="m-0 text-[22px] leading-[115%] tracking-[-0.02em] text-mist"
-                    style={{ fontFamily: "'Season Mix VF', serif", fontWeight: 420 }}
-                  >
-                    {project.title}
-                  </h3>
-                  <p
-                    className="mt-[18px] text-[12px] leading-4 text-mist line-clamp-2"
-                    style={{ fontFamily: "'Season Sans-TRIAL', sans-serif" }}
-                  >
-                    {project.short || project.description}
-                  </p>
-                </div>
-
-                <div className="flex justify-center">
-                  {project.coverImage ? (
-                    <img
-                      src={project.coverImage}
-                      alt={project.title}
-                      draggable={false}
-                      ref={fitCardToImage}
-                      className="h-[102.79px] w-[317.91px] object-contain md:h-[150px] md:w-auto md:max-w-none"
-                    />
-                  ) : (
-                    <ProjectIllustration variant={i % 4} />
-                  )}
-                </div>
-
-                <Link
-                  to={`/projects/${project.slug}`}
-                  className="group mt-auto inline-flex w-fit h-[46px] flex-shrink-0 items-center gap-[5px] rounded-[48px] border-[0.25px] border-mist px-[14px] font-['Akkurat_Mono',monospace] text-[10px] font-medium uppercase leading-none text-mist no-underline transition-colors duration-200 ease-out hover:bg-mist hover:text-navy"
+                {introBlock}
+              </div>
+            )}
+            <div
+              ref={scrollRef}
+              data-horizontal-scroll
+              className="flex flex-col md:flex-row tablet:flex-row items-stretch gap-4 tablet:gap-2 md:gap-2 px-4 tablet:pr-0 md:pl-[38px] md:pr-2 tablet:overflow-x-auto tablet:overflow-y-hidden md:overflow-x-auto md:overflow-y-hidden md:cursor-grab select-none [&::-webkit-scrollbar]:hidden"
+              style={{
+                scrollbarWidth: 'none',
+                WebkitOverflowScrolling: 'touch',
+                // The vertical stack lets the page pan freely; the desktop
+                // slider claims the horizontal axis outright. Tablet is a touch
+                // carousel, so it needs `auto` — the browser then routes a
+                // horizontal swipe to the track and a vertical one to the page.
+                touchAction: isMobile ? 'auto' : 'pan-x',
+                overscrollBehavior: 'contain',
+                // Desktop: extend the track's right edge out to the viewport edge
+                // (negative margin = the right gutter, in canvas px) so the cards
+                // run/peek to the edge instead of stopping at the 1440 canvas.
+                // Tablet needs no equivalent — its canvas IS the viewport width,
+                // so dropping the right padding (tablet:pr-0) reaches the edge.
+                marginRight: isMobile
+                  ? undefined
+                  : `calc((100vw / ${scale} - 1440px) / -2)`,
+              }}
+            >
+              {/* mr + the row's gap-2 (8px) = the 227.5px intro-to-cards gap.
+                  Rendered conditionally rather than hidden with `md:`: a
+                  display:none twin would still carry `data-reveal` and take a
+                  step in the off-desktop stagger. */}
+              {isDesktop && (
+                <div
+                  data-reveal
+                  className="flex-shrink-0 w-[240px] flex flex-col gap-[30px] py-4 mr-[219.5px]"
                 >
-                  <span className="relative top-[1px]">DISCOVER</span>
-                  <ArrowIcon size={14} />
-                </Link>
-              </article>
-            ))}
+                  {introBlock}
+                </div>
+              )}
+
+              {projects.map((project, i) => (
+                <article
+                  key={project.slug}
+                  data-reveal
+                  // tablet: two cards (2 x 178) plus the gap-2 either side of
+                  // them fill the 414px of track inside the left gutter bar a
+                  // ~42px peek of the third — the cut-off card is what says the
+                  // row scrolls. Narrowing the gap widened the cards to hold
+                  // that peek constant: 414 - 2*178 - 2*8 = 42.
+                  className="flex-shrink-0 w-full tablet:w-[178px] md:w-[496px] bg-navy px-6 tablet:px-4 py-8 tablet:py-5 md:px-[38px] md:py-10 flex flex-col gap-10 tablet:gap-4 md:gap-[70px] text-mist"
+                >
+                  <div>
+                    <h3
+                      className="m-0 text-[22px] tablet:text-[16px] leading-[115%] tracking-[-0.02em] text-mist"
+                      style={{ fontFamily: "'Season Mix VF', serif", fontWeight: 420 }}
+                    >
+                      {project.title}
+                    </h3>
+                    <p
+                      className="mt-[18px] tablet:mt-[10px] text-[12px] tablet:text-[10px] leading-4 tablet:leading-[13px] text-mist line-clamp-2"
+                      style={{ fontFamily: "'Season Sans-TRIAL', sans-serif" }}
+                    >
+                      {project.short || project.description}
+                    </p>
+                  </div>
+
+                  <div className="flex justify-center">
+                    {project.coverImage ? (
+                      <img
+                        src={project.coverImage}
+                        alt={project.title}
+                        draggable={false}
+                        ref={fitCardToImage}
+                        // The 317.91x102.79 box is authored for a full-width
+                        // card — nearly twice the tablet card. Left at that
+                        // fixed height, a ~3:1 cover refits to 138x45 by
+                        // object-contain and the remaining 58px of box is dead
+                        // space, which is what made the tablet card 170x346.
+                        // `h-auto` lets the box follow the cover's own aspect.
+                        className="h-[102.79px] w-[317.91px] tablet:h-auto tablet:w-full object-contain md:h-[150px] md:w-auto md:max-w-none"
+                      />
+                    ) : (
+                      <ProjectIllustration variant={i % 4} />
+                    )}
+                  </div>
+
+                  <Link
+                    to={`/projects/${project.slug}`}
+                    className="group mt-auto inline-flex w-fit h-[46px] tablet:h-[32px] flex-shrink-0 items-center gap-[5px] tablet:gap-[4px] rounded-[48px] border-[0.25px] border-mist px-[14px] tablet:px-[10px] font-['Akkurat_Mono',monospace] text-[10px] tablet:text-[8px] font-medium uppercase leading-none text-mist no-underline transition-colors duration-200 ease-out hover:bg-mist hover:text-navy"
+                  >
+                    <span className="relative top-[1px]">DISCOVER</span>
+                    <ArrowIcon size={isTablet ? 11 : 14} />
+                  </Link>
+                </article>
+              ))}
+            </div>
           </div>
 
-          <div className="mt-8 mx-auto hidden md:block w-full max-w-[280px] h-[2px] bg-[#1C2D4F]/15 relative">
+          <div className="mt-8 mx-auto hidden tablet:block md:block w-full max-w-[280px] h-[2px] bg-[#1C2D4F]/15 relative">
             <div
               ref={progressFillRef}
               className="absolute top-0 h-full bg-[#1C2D4F] transition-[left] duration-150 ease-out"

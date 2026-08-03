@@ -66,14 +66,19 @@ function ProjectBanner({
     </div>
   )
 
+  // tablet takes the desktop px-10 / mt-[68px] rather than the phone values, so
+  // the opening reveal's from-values (sidePad 40, marginTop 68 — see
+  // ProjectOpening) describe the real resting geometry there too. Before this
+  // they did not: `md:` does not match on tablet portrait, so the CSS was
+  // px-6/mt-[52px] while the timeline forced 40/68 inline at scrub 0.
   const cls = onDark
     ? 'px-[16px] mt-[72px] pb-[104px]'
-    : 'px-6 md:px-10 mt-[52px] md:mt-[68px]'
+    : 'px-6 tablet:px-10 md:px-10 mt-[52px] tablet:mt-[68px] md:mt-[68px]'
   if (!locked) {
     return <section className={cls}>{inner}</section>
   }
   return (
-    <ScaleLock className={cls}>
+    <ScaleLock unlockTablet className={cls}>
       {inner}
     </ScaleLock>
   )

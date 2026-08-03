@@ -1,5 +1,5 @@
 import { useState, useLayoutEffect, useRef, createElement } from 'react'
-import { useScale } from './useScale'
+import { useScale, useIsTabletPortrait } from './useScale'
 
 // Wraps `children` in the home-page scale-wrapper. The inner <section> lays out in
 // a referenceWidth-wide virtual canvas, then scales to fill the container width.
@@ -22,6 +22,13 @@ import { useScale } from './useScale'
 //              canvas centers, the background still reaches both viewport edges
 //              instead of leaving gutters. Pass the section's bg here instead of
 //              in `className`.
+//   unlockTablet  Opt out of the tablet portrait zoom lock: render at scale 1 on
+//              an iPad so the section lays out 1:1 on the real viewport and its
+//              `tablet:` utilities are true CSS px. Opt-IN because the home
+//              page's sections are already tuned against the 2.38x zoomed 430
+//              canvas — unlocking them would resize every one of their existing
+//              `tablet:` values. The project sections and the About/Contact/
+//              Subsidiaries pages use it. Ignored when `scale` is passed.
 //   fill       Skip the referenceWidth cap so the canvas keeps filling the width
 //              (content spreads at the locked zoom instead of centering). Use for
 //              full-bleed sliders/carousels whose slides must reach the viewport
@@ -35,6 +42,7 @@ export function ScaleLock({
   scale: scaleProp,
   referenceWidth = 1440,
   bg,
+  unlockTablet = false,
   fill = false,
   innerRef,
   className,
@@ -43,7 +51,8 @@ export function ScaleLock({
   ...rest
 }) {
   const ownScale = useScale()
-  const scale = scaleProp ?? ownScale
+  const isTablet = useIsTabletPortrait()
+  const scale = scaleProp ?? (unlockTablet && isTablet ? 1 : ownScale)
   const wrapperRef = useRef(null)
   const [reserved, setReserved] = useState(null)
 

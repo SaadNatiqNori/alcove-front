@@ -10,6 +10,7 @@ import { cubicEase } from './easings'
 import { useRevealOnScroll, prefersReducedMotion, REVEAL } from './motion'
 import { useContent } from './api'
 import { DESKTOP_MIN } from './breakpoints'
+import { useIsTabletPortrait } from './useScale'
 
 const SUBS_FALLBACK = {
   title: 'Subsidiaries',
@@ -119,26 +120,31 @@ function SubsidiaryCard({ icon, title, description }) {
   return (
     <div
       // mx-auto centres the card whenever its cell is wider than the 429px cap.
-      // A no-op on phones (the cell is narrower than the cap) and on desktop
-      // (the cell is exactly 429px); it only bites on the tablet canvas, where
-      // the single-column cell is 528px and the card would otherwise sit left.
-      className="flex flex-col rounded-[4px] p-[24px] md:p-[38px] w-full max-w-[429px] mx-auto"
+      // A no-op on phones (the cell is narrower than the cap) and on desktop,
+      // where the zigzag cell is exactly 429px.
+      //
+      // tablet: the card is as wide as its zigzag column allows, up to the same
+      // 429px cap — 429 on a 1024 iPad, 310 on a 768 one. Because it holds
+      // near-desktop width rather than scaling with the page, its contents sit
+      // at near-desktop sizes rather than the 0.711 page ratio; a 429px card
+      // with 27px type would read half-empty.
+      className="flex flex-col rounded-[4px] p-[24px] tablet:p-[32px] md:p-[38px] w-full max-w-[429px] mx-auto"
       style={{ background: '#FFFFFF05' }}
     >
-      <div className="h-[19px] md:h-[28px] flex items-center">{icon}</div>
+      <div className="h-[19px] tablet:h-[28px] md:h-[28px] flex items-center">{icon}</div>
       <img
         src={logoYellow}
         alt="Alcove"
-        className="mt-[16px] md:mt-[21px] h-[11px] md:h-[15px] w-[58px] md:w-[74px]"
+        className="mt-[16px] tablet:mt-[21px] md:mt-[21px] h-[11px] tablet:h-[15px] md:h-[15px] w-[58px] tablet:w-[74px] md:w-[74px]"
       />
       <h3
-        className="m-0 mt-[7px] md:mt-[14px] text-[26px] md:text-[38px] font-normal leading-none tracking-[-0.04em] text-gold"
+        className="m-0 mt-[7px] tablet:mt-[14px] md:mt-[14px] text-[26px] tablet:text-[30px] md:text-[38px] font-normal leading-none tracking-[-0.04em] text-gold"
         style={{ fontFamily: "'Season Mix VF', serif", fontWeight: 420 }}
       >
         {title}
       </h3>
       <p
-        className="m-0 mt-[24px] md:mt-[32px] text-[14px] md:text-[16px] leading-[1.15] tracking-[0] max-w-[257px] text-mist"
+        className="m-0 mt-[24px] tablet:mt-[28px] md:mt-[32px] text-[14px] tablet:text-[16px] md:text-[16px] leading-[1.15] tracking-[0] max-w-[257px] text-mist"
         style={{ fontFamily: "'Season Sans-TRIAL', sans-serif", fontWeight: 400 }}
       >
         {description}
@@ -166,7 +172,7 @@ function SubsidiariesPage() {
         <img
           src={item.image}
           alt=""
-          className="w-[27px] h-[26px] md:w-[52px] md:h-[52px] object-contain"
+          className="w-[27px] h-[26px] tablet:w-[52px] tablet:h-[52px] md:w-[52px] md:h-[52px] object-contain"
         />
       )
     }
@@ -184,6 +190,13 @@ function SubsidiariesPage() {
   const revealRef = useRevealOnScroll([items.map((i) => i.title).join('|')], {
     each: true,
   })
+  // iPad portrait opts out of the shared tablet zoom lock, exactly as AboutPage
+  // does: ScaleLock would otherwise render the 430px mobile canvas at 2.38x,
+  // which put a 62px card title on a card ~950px wide. At scale 1 the page lays
+  // out 1:1 on the real viewport and every `tablet:` utility below is a true CSS
+  // px value — no dividing by the zoom, and no dependence on Safari and Blink
+  // agreeing about a scaled canvas.
+  const isTablet = useIsTabletPortrait()
 
   // The centre spine was the one static element among the reveals. It runs the
   // house fade+rise once, on the same trigger and timing as the connector dashes
@@ -228,40 +241,50 @@ function SubsidiariesPage() {
 
   return (
     <>
-      <ScaleLock as="main" viewport="min" bg="bg-navy" className="relative text-mist px-4 pt-[140px] pb-24 md:px-8 md:pt-[180px] md:pb-32">
+      <ScaleLock
+        as="main"
+        viewport="min"
+        bg="bg-navy"
+        scale={isTablet ? 1 : undefined}
+        className="relative text-mist px-4 tablet:px-[24px] pt-[140px] tablet:pt-[128px] pb-24 tablet:pb-[91px] md:px-8 md:pt-[180px] md:pb-32"
+      >
         <div ref={revealRef} className="max-w-[1440px] mx-auto">
-          <div className="text-center max-w-[356px] md:max-w-[695px] mx-auto">
+          <div className="text-center max-w-[356px] tablet:max-w-[500px] md:max-w-[695px] mx-auto">
             <h1
               ref={titleRef}
-              className="m-0 text-[36px] md:text-[46px] font-normal leading-none tracking-[-0.04em] text-gold"
+              className="m-0 text-[36px] tablet:text-[33px] md:text-[46px] font-normal leading-none tracking-[-0.04em] text-gold"
               style={{ fontFamily: "'Season Mix VF', serif", fontWeight: 420 }}
             >
               {subs.title}
             </h1>
             <p
               ref={introRef}
-              className="m-0 mt-2 md:mt-0 text-[17px] md:text-[32px] leading-[1.15] tracking-[0] text-mist"
+              className="m-0 mt-2 tablet:mt-1 md:mt-0 text-[17px] tablet:text-[23px] md:text-[32px] leading-[1.15] tracking-[0] text-mist"
               style={{ fontFamily: "'Season Sans-TRIAL', sans-serif", fontWeight: 400 }}
             >
               {intro}
             </p>
           </div>
 
-          <div className="relative mt-24 md:mt-32">
+          <div className="relative mt-24 tablet:mt-[91px] md:mt-32">
             <div
               ref={spineRef}
               aria-hidden="true"
-              className="hidden md:block absolute top-0 bottom-0 left-1/2 -translate-x-1/2 w-[1px]"
+              className="hidden tablet:block md:block absolute top-0 bottom-0 left-1/2 -translate-x-1/2 w-[1px]"
               style={{
                 backgroundImage:
                   'repeating-linear-gradient(to bottom, #FFFFFF40 0, #FFFFFF40 6px, transparent 6px, transparent 12px)',
               }}
             />
 
-            <div className="relative grid grid-cols-1 md:grid-cols-2 gap-x-[260px] gap-y-[38px] md:gap-y-[80px]">
+            {/* tablet: the same zigzag as desktop, retuned to 1024 — two 429px
+                cards need a 100px gutter (2x429 + 100 = 958 inside the 976
+                content width) rather than desktop's 260, which puts the spine
+                50px off each card's inner edge. */}
+            <div className="relative grid grid-cols-1 tablet:grid-cols-2 md:grid-cols-2 gap-x-[260px] tablet:gap-x-[100px] gap-y-[38px] tablet:gap-y-[57px] md:gap-y-[80px]">
               <div
                 data-reveal
-                className="relative md:w-[429px] md:justify-self-end md:col-start-1 md:row-start-1"
+                className="relative tablet:w-full tablet:max-w-[429px] tablet:justify-self-end tablet:col-start-1 tablet:row-start-1 md:w-[429px] md:justify-self-end md:col-start-1 md:row-start-1"
               >
                 <SubsidiaryCard
                   icon={iconFor(items[0])}
@@ -270,7 +293,7 @@ function SubsidiariesPage() {
                 />
                 <div
                   aria-hidden="true"
-                  className="md:hidden absolute top-full left-1/2 -translate-x-1/2 w-[1px] h-[38px]"
+                  className="tablet:hidden md:hidden absolute top-full left-1/2 -translate-x-1/2 w-[1px] h-[38px]"
                   style={{
                     backgroundImage:
                       'repeating-linear-gradient(to bottom, #FFFFFF40 0, #FFFFFF40 6px, transparent 6px, transparent 12px)',
@@ -278,7 +301,7 @@ function SubsidiariesPage() {
                 />
                 <div
                   aria-hidden="true"
-                  className="hidden md:block absolute top-1/2 left-full w-[130px] h-[1px]"
+                  className="hidden tablet:block md:block absolute top-1/2 left-full w-[130px] tablet:w-[50px] h-[1px]"
                   style={{
                     backgroundImage:
                       'repeating-linear-gradient(to right, #FFFFFF40 0, #FFFFFF40 6px, transparent 6px, transparent 12px)',
@@ -288,7 +311,7 @@ function SubsidiariesPage() {
 
               <div
                 data-reveal
-                className="relative md:w-[429px] md:justify-self-start md:col-start-2 md:row-start-2"
+                className="relative tablet:w-full tablet:max-w-[429px] tablet:justify-self-start tablet:col-start-2 tablet:row-start-2 md:w-[429px] md:justify-self-start md:col-start-2 md:row-start-2"
               >
                 <SubsidiaryCard
                   icon={iconFor(items[1])}
@@ -297,7 +320,7 @@ function SubsidiariesPage() {
                 />
                 <div
                   aria-hidden="true"
-                  className="md:hidden absolute top-full left-1/2 -translate-x-1/2 w-[1px] h-[38px]"
+                  className="tablet:hidden md:hidden absolute top-full left-1/2 -translate-x-1/2 w-[1px] h-[38px]"
                   style={{
                     backgroundImage:
                       'repeating-linear-gradient(to bottom, #FFFFFF40 0, #FFFFFF40 6px, transparent 6px, transparent 12px)',
@@ -305,7 +328,7 @@ function SubsidiariesPage() {
                 />
                 <div
                   aria-hidden="true"
-                  className="hidden md:block absolute top-1/2 right-full w-[130px] h-[1px]"
+                  className="hidden tablet:block md:block absolute top-1/2 right-full w-[130px] tablet:w-[50px] h-[1px]"
                   style={{
                     backgroundImage:
                       'repeating-linear-gradient(to right, #FFFFFF40 0, #FFFFFF40 6px, transparent 6px, transparent 12px)',
@@ -315,7 +338,7 @@ function SubsidiariesPage() {
 
               <div
                 data-reveal
-                className="relative md:w-[429px] md:justify-self-end md:col-start-1 md:row-start-3"
+                className="relative tablet:w-full tablet:max-w-[429px] tablet:justify-self-end tablet:col-start-1 tablet:row-start-3 md:w-[429px] md:justify-self-end md:col-start-1 md:row-start-3"
               >
                 <SubsidiaryCard
                   icon={iconFor(items[2])}
@@ -324,7 +347,7 @@ function SubsidiariesPage() {
                 />
                 <div
                   aria-hidden="true"
-                  className="hidden md:block absolute top-1/2 left-full w-[130px] h-[1px]"
+                  className="hidden tablet:block md:block absolute top-1/2 left-full w-[130px] tablet:w-[50px] h-[1px]"
                   style={{
                     backgroundImage:
                       'repeating-linear-gradient(to right, #FFFFFF40 0, #FFFFFF40 6px, transparent 6px, transparent 12px)',
@@ -336,14 +359,14 @@ function SubsidiariesPage() {
 
           {/* Revealed as one block, like the cards above — the panel reads as a
               single card, so staggering its parts would fight that. */}
-          <div data-reveal className="mt-24 md:mt-[232px] max-w-[1130px] mx-auto bg-[#FFFFFF05] rounded-[6px] px-[16px] py-[54px] md:px-[70px] md:py-[80px] flex flex-col gap-12 md:gap-[70px]">
+          <div data-reveal className="mt-24 tablet:mt-[165px] md:mt-[232px] max-w-[1130px] mx-auto bg-[#FFFFFF05] rounded-[6px] px-[16px] tablet:px-[50px] py-[54px] tablet:py-[57px] md:px-[70px] md:py-[80px] flex flex-col gap-12 tablet:gap-[50px] md:gap-[70px]">
             <div className="flex gap-[28px]">
               <div
                 aria-hidden="true"
                 className="w-[1px] shrink-0 self-stretch bg-gold"
               />
               <h2
-                className="m-0 text-[28px] md:text-[44px] font-normal leading-[1.2] tracking-[-0.04em] text-gold"
+                className="m-0 text-[28px] tablet:text-[31px] md:text-[44px] font-normal leading-[1.2] tracking-[-0.04em] text-gold"
                 style={{ fontFamily: "'Season Mix VF', serif", fontWeight: 420 }}
               >
                 {what.title[0]}
@@ -351,7 +374,7 @@ function SubsidiariesPage() {
                 {what.title[1]}
               </h2>
             </div>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-10 md:gap-[50px] max-w-[990px]">
+            <div className="grid grid-cols-1 tablet:grid-cols-2 md:grid-cols-2 gap-10 tablet:gap-[36px] md:gap-[50px] max-w-[990px]">
               <p
                 className="m-0 text-[16px] md:text-[22px] leading-[1.25] tracking-[0] text-mist max-w-[470px]"
               >

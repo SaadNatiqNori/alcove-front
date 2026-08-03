@@ -37,8 +37,12 @@ function ProjectHero({ title, description, ornament = true, project, locked = tr
   // navbar at extreme zoom. 100vh is divided by --scale so it stays one real
   // viewport inside the scaled canvas (--scale is set by the wrapping ScaleLock,
   // or by ProjectOpening's scale-wrapper when this hero feeds the opening).
+  // tablet: the same "rest at the designed padding, ease up on short screens"
+  // rule as desktop, but against the iPad's own budget. At scale 1 the stage is
+  // one real viewport and the banner rests ~357px tall, so the copy has room to
+  // sit low; the clamp floor keeps it clear of the navbar on a 768-wide iPad.
   const cls =
-    'px-6 md:px-10 pt-[150px] md:pt-[clamp(110px,calc(100vh/var(--scale)-668px),188px)]'
+    'px-6 tablet:px-10 md:px-10 pt-[150px] tablet:pt-[clamp(150px,calc(100vh/var(--scale)-670px),700px)] md:pt-[clamp(110px,calc(100vh/var(--scale)-668px),188px)]'
   const inner = (
     <div className="mx-auto flex max-w-[900px] flex-col items-center text-center">
         {/* Plain wrapper so the opening scale-reveal can drift the logo +
@@ -54,7 +58,7 @@ function ProjectHero({ title, description, ornament = true, project, locked = tr
               aria-hidden="true"
               className={[
                 icon
-                  ? 'mx-auto h-[26px] md:h-[46px] w-auto select-none object-contain'
+                  ? 'mx-auto h-[26px] tablet:h-[33px] md:h-[46px] w-auto select-none object-contain'
                   : 'mx-auto h-[46px] w-[88px] select-none',
                 // The emblem SVGs use a fixed dark fill (#1C1F2A); on the mobile
                 // navy hero, lighten them to mist so they read as the light
@@ -66,7 +70,7 @@ function ProjectHero({ title, description, ornament = true, project, locked = tr
           )}
           <h1
             data-hero-item
-          className={`m-0 mt-[20px] md:mt-5 text-[44px] md:text-[88px] font-normal leading-[1.15] tracking-[-0.03em] ${
+          className={`m-0 mt-[20px] tablet:mt-5 md:mt-5 text-[44px] tablet:text-[62px] md:text-[88px] font-normal leading-[1.15] tracking-[-0.03em] ${
               onDark ? 'text-mist' : 'text-[#1C1F2A]'
             }`}
             style={{ fontFamily: "'Season Mix-TRIAL', serif" }}
@@ -77,7 +81,7 @@ function ProjectHero({ title, description, ornament = true, project, locked = tr
         {description && (
           <p
             data-hero-item
-            className={`m-0 mt-[20px] md:mt-3 max-w-[328px] md:max-w-[631px] text-[13px] md:text-[16px] leading-[1.25] tracking-[0] ${
+            className={`m-0 mt-[20px] tablet:mt-4 md:mt-3 max-w-[328px] tablet:max-w-[560px] md:max-w-[631px] text-[13px] tablet:text-[16px] md:text-[16px] leading-[1.25] tracking-[0] ${
               onDark ? 'text-[#E2EAF2]' : 'text-[#black]'
             }`}
           >
@@ -95,7 +99,7 @@ function ProjectHero({ title, description, ornament = true, project, locked = tr
     )
   }
   return (
-    <ScaleLock innerRef={rootRef} className={cls} aria-label={title}>
+    <ScaleLock unlockTablet innerRef={rootRef} className={cls} aria-label={title}>
       {inner}
     </ScaleLock>
   )

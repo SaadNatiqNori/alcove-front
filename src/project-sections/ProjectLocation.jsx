@@ -4,7 +4,7 @@ import { ScrollTrigger } from 'gsap/ScrollTrigger'
 import { cubicEase } from '../easings'
 import { prefersReducedMotion } from './motion'
 import { OrbitSVG, ShieldSVG, CirclesSVG } from './LocationIllustrations'
-import { useScale } from '../useScale'
+import { useScale, useIsTabletPortrait } from '../useScale'
 import { ScaleLock } from '../ScaleLock'
 import { DESKTOP_MIN } from '../breakpoints'
 
@@ -26,7 +26,9 @@ function ProjectLocation({ title = 'Location', items = [] }) {
   const rootRef = useRef(null)
   const [open, setOpen] = useState(0)
   const didInit = useRef(false)
-  const scale = useScale()
+  const isTablet = useIsTabletPortrait()
+  const zoomScale = useScale()
+  const scale = isTablet ? 1 : zoomScale
 
   // Below 768px the layout collapses into a single stacked column: the centre
   // illustration stage is dropped and each item's illustration is shown inline
@@ -95,11 +97,11 @@ function ProjectLocation({ title = 'Location', items = [] }) {
       bg="bg-[#161A24]"
       className="relative flex items-center overflow-hidden text-mist"
     >
-      <div className="mx-auto flex w-full max-w-[1720px] flex-col items-start gap-12 px-[16px] py-[65px] md:flex-row md:items-center md:justify-between md:gap-0 md:px-[38px] md:py-0">
+      <div className="mx-auto flex w-full max-w-[1720px] flex-col items-start gap-12 tablet:gap-10 px-[16px] tablet:px-[38px] py-[65px] tablet:py-[80px] md:flex-row md:items-center md:justify-between md:gap-0 md:px-[38px] md:py-0">
         {/* Title */}
         <h2
           data-loc-item
-          className="m-0 shrink-0 text-[44px] md:text-[52px] font-normal leading-[1] tracking-[-0.01em] text-[#ECD898]"
+          className="m-0 shrink-0 text-[44px] tablet:text-[37px] md:text-[52px] font-normal leading-[1] tracking-[-0.01em] text-[#ECD898]"
           style={{ fontFamily: "'Season Mix-TRIAL', serif" }}
         >
           {title}
@@ -151,7 +153,7 @@ function ProjectLocation({ title = 'Location', items = [] }) {
                   className="flex w-full items-center justify-between gap-6 pt-5 pb-5 text-left"
                 >
                   <span
-                    className="text-[22px] md:text-[26px] font-normal leading-[1.15] tracking-[-0.02em] text-[#E8ECF1]"
+                    className="text-[22px] tablet:text-[19px] md:text-[26px] font-normal leading-[1.15] tracking-[-0.02em] text-[#E8ECF1]"
                     style={{ textBoxTrim: 'trim-both', textBoxEdge: 'cap alphabetic' }}
                   >
                     {item.label}
@@ -178,7 +180,7 @@ function ProjectLocation({ title = 'Location', items = [] }) {
                 >
                   <div className="overflow-hidden">
                     <p
-                      className="m-0 max-w-[349px] pt-6 pb-7 text-[14px] leading-[1] tracking-[0] text-[#E2EAF2]"
+                      className="m-0 max-w-[349px] tablet:max-w-[560px] pt-6 pb-7 text-[14px] tablet:text-[16px] leading-[1] tablet:leading-[1.35] tracking-[0] text-[#E2EAF2]"
                       style={{ textBoxTrim: 'trim-both', textBoxEdge: 'cap alphabetic' }}
                     >
                       {item.body}
@@ -196,7 +198,7 @@ function ProjectLocation({ title = 'Location', items = [] }) {
                   }}
                 >
                   <div className="overflow-hidden">
-                    <div className="mx-auto flex aspect-square w-[174px] md:w-[300px] max-w-full items-center justify-center pb-8">
+                    <div className="mx-auto flex aspect-square w-[174px] tablet:w-[241px] md:w-[300px] max-w-full items-center justify-center pb-8">
                       {item.image ? (
                         <img
                           src={item.image}

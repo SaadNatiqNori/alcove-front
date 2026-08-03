@@ -35,6 +35,7 @@ function ProjectFeatures({ groups = [] }) {
 
   return (
     <ScaleLock
+      unlockTablet
       innerRef={rootRef}
       fill
       bg="bg-[#E6EBF0]"
@@ -49,15 +50,15 @@ function ProjectFeatures({ groups = [] }) {
           // pads its top (the section's top edge). So the gap between two groups
           // is the upper group's colour all the way down to the next group's
           // border — the colour switches at the line, not mid-gap.
-          className={`w-full pb-[64px] md:pb-[119px]${gi === 0 ? ' pt-[64px] md:pt-[119px]' : ''}`}
+          className={`w-full pb-[64px] tablet:pb-[85px] md:pb-[119px]${gi === 0 ? ' pt-[64px] tablet:pt-[85px] md:pt-[119px]' : ''}`}
           style={{ backgroundColor: group.bg ?? '#E6EBF0' }}
         >
-          <div className="mx-auto max-w-[1440px] border-t border-[#1C1F2A] px-[16px] pt-[40px] pb-0 md:px-[38px] md:pt-[70px]">
-            <div className="grid grid-cols-1 gap-[55px] md:grid-cols-[minmax(0,0.9fr)_minmax(0,2.55fr)] md:gap-16">
+          <div className="mx-auto max-w-[1440px] border-t border-[#1C1F2A] px-[16px] tablet:px-[38px] pt-[40px] tablet:pt-[50px] pb-0 md:px-[38px] md:pt-[70px]">
+            <div className="grid grid-cols-1 gap-[55px] tablet:gap-[40px] tablet:grid-cols-[minmax(0,0.9fr)_minmax(0,2.55fr)] tablet:gap-x-10 md:grid-cols-[minmax(0,0.9fr)_minmax(0,2.55fr)] md:gap-16">
               {/* Title column */}
               <div data-feat-item>
                 <h2
-                  className="m-0 whitespace-pre-line text-[42px] md:text-[50px] font-[420] leading-[1] tracking-[-0.04em] text-[#1C1F2A]"
+                  className="m-0 whitespace-pre-line text-[42px] tablet:text-[36px] md:text-[50px] font-[420] leading-[1] tracking-[-0.04em] text-[#1C1F2A]"
                   style={{
                     fontFamily: "'Season Mix VF', serif",
                     textBoxTrim: 'trim-both',
@@ -67,7 +68,7 @@ function ProjectFeatures({ groups = [] }) {
                   {group.title}
                 </h2>
                 {group.subtitle && (
-                  <p className="m-0 mt-5 text-[15px] leading-[1.5] text-[#5A6472]">
+                  <p className="m-0 mt-5 text-[15px] tablet:text-[16px] leading-[1.5] text-[#5A6472]">
                     {group.subtitle}
                   </p>
                 )}
@@ -79,16 +80,16 @@ function ProjectFeatures({ groups = [] }) {
                   <div
                     key={row.feature ?? ri}
                     data-feat-item
-                    className="grid grid-cols-1 justify-between gap-2 border-b border-[#1C1F2A] pt-[28px] pb-[28px] first:pt-0 md:grid-cols-[minmax(0,1.15fr)_minmax(0,1fr)] md:gap-12 md:pt-[46px] md:pb-[46px] md:first:pt-0"
+                    className="grid grid-cols-1 justify-between gap-2 border-b border-[#1C1F2A] pt-[28px] pb-[28px] tablet:pt-[33px] tablet:pb-[33px] first:pt-0 tablet:grid-cols-[minmax(0,1.15fr)_minmax(0,1fr)] tablet:gap-6 md:grid-cols-[minmax(0,1.15fr)_minmax(0,1fr)] md:gap-12 md:pt-[46px] md:pb-[46px] md:first:pt-0"
                   >
                     <h3
-                      className="m-0 self-center text-[24px] md:text-[38px] font-normal leading-[1.15] tracking-[-0.02em] text-[#1C1F2A]"
+                      className="m-0 self-center text-[24px] tablet:text-[27px] md:text-[38px] font-normal leading-[1.15] tracking-[-0.02em] text-[#1C1F2A]"
                       style={{ textBoxTrim: 'trim-both', textBoxEdge: 'cap alphabetic' }}
                     >
                       {row.feature}
                     </h3>
                     <p
-                      className="m-0 w-full self-center text-[13px] leading-[1.4] tracking-[0] text-[#5A6472] md:ml-auto md:max-w-[312px] md:text-[18px] md:leading-[1.2] pt-[6px] md:pt-0"
+                      className="m-0 w-full self-center text-[13px] tablet:text-[16px] leading-[1.4] tracking-[0] text-[#5A6472] tablet:ml-auto tablet:max-w-[260px] tablet:leading-[1.25] md:ml-auto md:max-w-[312px] md:text-[18px] md:leading-[1.2] pt-[6px] tablet:pt-0 md:pt-0"
                       style={{ textBoxTrim: 'trim-both', textBoxEdge: 'cap alphabetic' }}
                     >
                       {row.description.map((seg, si) => {
