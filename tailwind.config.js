@@ -3,6 +3,7 @@ import {
     DESKTOP_QUERY,
     LG_QUERY,
     MOBILE_QUERY,
+    NAV_DESKTOP_QUERY,
     TABLET_PORTRAIT_QUERY,
 } from './src/breakpoints.js'
 
@@ -49,6 +50,10 @@ export default {
             // a 560px one, so mobile sizes render ~23% smaller in proportion
             // there (430/560). Use it to restore the intended proportions.
             addVariant('tablet', `@media ${TABLET_PORTRAIT_QUERY}`)
+            // `navdesk:` is `md:` plus tablet portrait. Navbar-only — it is what
+            // keeps the desktop pill on an iPad while the page below it stays
+            // mobile. Do not reach for it elsewhere.
+            addVariant('navdesk', `@media ${NAV_DESKTOP_QUERY}`)
         }),
     ],
 }

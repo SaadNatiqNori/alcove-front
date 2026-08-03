@@ -148,3 +148,23 @@ export function useIsDesktop() {
   }, [])
   return isDesktop
 }
+
+// True on iPad portrait — the JS counterpart of the CSS `tablet:` variant, for
+// the branches CSS cannot express. Note this is NOT a third peer of
+// `useIsDesktop`: tablet portrait is a *subset* of the non-desktop layout
+// (`useIsDesktop` is false here too), so a component needing all three regimes
+// reads both hooks.
+export function useIsTabletPortrait() {
+  const [isTablet, setIsTablet] = useState(() =>
+    typeof window !== 'undefined'
+      ? window.matchMedia(TABLET_PORTRAIT_QUERY).matches
+      : false
+  )
+  useEffect(() => {
+    const mq = window.matchMedia(TABLET_PORTRAIT_QUERY)
+    const onChange = () => setIsTablet(mq.matches)
+    mq.addEventListener('change', onChange)
+    return () => mq.removeEventListener('change', onChange)
+  }, [])
+  return isTablet
+}

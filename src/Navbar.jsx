@@ -8,7 +8,7 @@ import { cubicEase } from './easings'
 import { HERO_INTRO, offscreenAbove } from './motion'
 import { PROJECTS_DATA } from './projects'
 import { useProjects, useContent } from './api'
-import { useScale, useIsDesktop } from './useScale'
+import { useScale, useIsDesktop, useIsTabletPortrait } from './useScale'
 import BurgerIcon from './BurgerIcon'
 import MobileMenu from './MobileMenu'
 
@@ -77,7 +77,7 @@ function ProjectsDropdown({ open, onClose, projects, heading, onMouseEnter, onMo
       onMouseEnter={onMouseEnter}
       onMouseLeave={onMouseLeave}
     >
-      <div className="flex flex-col md:flex-row gap-[58px]">
+      <div className="flex flex-col navdesk:flex-row gap-[58px]">
         <div className="flex shrink-0 flex-col">
           <h3
             className="m-0 text-[27px] leading-[100%] tracking-[-0.02em] text-mist"
@@ -106,7 +106,7 @@ function ProjectsDropdown({ open, onClose, projects, heading, onMouseEnter, onMo
         </div>
 
         <div
-          className="flex-1 grid grid-cols-1 md:grid-cols-3 gap-[44px]"
+          className="flex-1 grid grid-cols-1 navdesk:grid-cols-3 gap-[44px]"
           onMouseLeave={() => setHoveredItem(null)}
         >
           {projects.map((project, i) => (
@@ -143,15 +143,16 @@ function Navbar() {
   // whose transform the entrance animation owns); it scales the pill and the
   // projects dropdown together so they stay aligned. scale is 1 on phones
   // (mobile untouched).
-  const scale = useScale()
-  // Tablet portrait runs the mobile layout at a scale above 1, so it cannot use
-  // the <header> transform: the header would become the containing block for the
-  // full-screen MobileMenu below (see the header's style note). It scales an
-  // inner layer wrapping only the pill and dropdown instead, width-compensated
-  // so the scaled box lands exactly on the header's content box.
+  const rawScale = useScale()
   const isDesktop = useIsDesktop()
+  // Tablet portrait shows the desktop pill (the `navdesk:` variant) at its
+  // authored size, so it must opt out of the mobile canvas zoom the rest of the
+  // page runs at there — width/430 is ~1.9x, which would render a header twice
+  // the size of the design. Scale 1 also means no transform on the <header>,
+  // which is what keeps the fixed-position dropdown anchored to the viewport.
+  const isTabletPortrait = useIsTabletPortrait()
+  const scale = isTabletPortrait ? 1 : rawScale
   const scaleHeader = isDesktop && scale !== 1
-  const scaleInner = !isDesktop && scale !== 1
   const [projectsOpen, setProjectsOpen] = useState(false)
   const [menuOpen, setMenuOpen] = useState(false)
   const [hoveredLink, setHoveredLink] = useState(null)
@@ -218,39 +219,24 @@ function Navbar() {
 
   return (
     <header
-      className="fixed top-0 left-0 right-0 z-50 flex flex-col items-center px-4 pt-4 md:px-8 md:pt-5 pointer-events-none"
-      // Only the desktop layout scales the header itself. At scale 1 (mobile) —
-      // and on tablet portrait, which scales the inner layer instead — a
-      // `transform` here would still establish a containing block for
-      // fixed-position descendants, trapping the full-screen MobileMenu inside
-      // the header box.
+      className="fixed top-0 left-0 right-0 z-50 flex flex-col items-center px-4 pt-4 navdesk:px-8 navdesk:pt-5 pointer-events-none"
+      // Only the desktop layout scales the header itself. At scale 1 (phones and
+      // tablet portrait) a `transform` here would still establish a containing
+      // block for fixed-position descendants, trapping the full-screen
+      // MobileMenu inside the header box.
       style={scaleHeader ? { transform: `scale(${scale})`, transformOrigin: 'top center' } : { transformOrigin: 'top center' }}
       aria-label="Site header"
     >
-      {/* Layout-neutral when unscaled: it repeats the header's own centering so
-          the desktop `md:w-max` pill still centers exactly as before. */}
-      <div
-        className="flex w-full flex-col items-center"
-        style={
-          scaleInner
-            ? {
-                transform: `scale(${scale})`,
-                transformOrigin: 'top center',
-                width: `${100 / scale}%`,
-              }
-            : undefined
-        }
-      >
       <nav
         ref={navbarRef}
-        className="pointer-events-auto relative z-50 flex h-[55px] w-full justify-between items-center gap-[5px] rounded-[4px] border border-[#FFFFFF1A] md:border-[#FFFFFF0D] bg-navy p-2 md:min-w-[420px] md:w-max"
+        className="pointer-events-auto relative z-50 flex h-[55px] w-full justify-between items-center gap-[5px] rounded-[4px] border border-[#FFFFFF1A] navdesk:border-[#FFFFFF0D] bg-navy p-2 navdesk:min-w-[420px] navdesk:w-max"
         aria-label="Main navigation"
       >
         <Link to="/" className="flex h-9 items-center justify-between p-2 no-underline">
           <img src={logo} alt="Alcove" className="h-[13px] w-auto" />
         </Link>
 
-        <ul className="hidden list-none items-center gap-[5px] p-0 m-0 md:flex">
+        <ul className="hidden list-none items-center gap-[5px] p-0 m-0 navdesk:flex">
           {nav.links.map((link) => (
             <li
               key={link.to}
@@ -302,16 +288,17 @@ function Navbar() {
           to="/contact"
           onMouseEnter={() => setHoveredLink('contact')}
           onMouseLeave={() => setHoveredLink(null)}
-          className="hidden md:inline-flex h-9 items-center whitespace-nowrap rounded-[22px] border border-transparent bg-mist px-[10px] font-['Akkurat_Mono',monospace] text-[10px] font-medium uppercase leading-none tracking-[0] text-[#191f2f] no-underline gap-[10px] transition-colors duration-300 ease-out hover:bg-transparent hover:border-mist hover:text-mist"
+          className="hidden navdesk:inline-flex h-9 items-center whitespace-nowrap rounded-[22px] border border-transparent bg-mist px-[10px] font-['Akkurat_Mono',monospace] text-[10px] font-medium uppercase leading-none tracking-[0] text-[#191f2f] no-underline gap-[10px] transition-colors duration-300 ease-out hover:bg-transparent hover:border-mist hover:text-mist"
         >
           <p className="m-0 font-['Akkurat_Mono',monospace] relative top-[1px]">{nav.contactLabel}</p>
         </Link>
 
-        {/* Mobile-only burger; morphs to an X while the overlay is open. */}
+        {/* Phone-only burger (tablet portrait gets the pill); morphs to an X
+            while the overlay is open. */}
         <button
           type="button"
           onClick={() => setMenuOpen((v) => !v)}
-          className="flex h-9 w-9 items-center justify-center rounded-[3px] border-0 bg-transparent p-0 cursor-pointer md:hidden"
+          className="flex h-9 w-9 items-center justify-center rounded-[3px] border-0 bg-transparent p-0 cursor-pointer navdesk:hidden"
           aria-label={menuOpen ? 'Close menu' : 'Open menu'}
           aria-expanded={menuOpen}
         >
@@ -327,7 +314,6 @@ function Navbar() {
         onMouseEnter={openProjects}
         onMouseLeave={scheduleCloseProjects}
       />
-      </div>
 
       <MobileMenu
         open={menuOpen}

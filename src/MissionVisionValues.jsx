@@ -162,18 +162,25 @@ function Card({ refProp, title, description, isValues, values, illustration, zIn
             The card is scaled down ~0.7x here — type, gaps and drawing together,
             so its internal proportions are unchanged. Phones and desktop keep
             their sizes. */}
-        <div className="mt-6 grid grid-cols-1 md:grid-cols-[460px_1fr] gap-[14px] tablet:gap-[10px] md:gap-16">
+        {/* Phones stack title → body → drawing in one column; desktop puts the
+            title in a fixed 460px column beside the text. iPad portrait gets its
+            own two-column split — title and body stacked top-aligned on the
+            left, the drawing in a fixed 170px column on the right. The body and
+            drawing share a wrapper for the other two layouts, so `tablet:contents`
+            dissolves it there and lets both become grid items in their own right;
+            explicit col/row starts then place all three. */}
+        <div className="mt-6 grid grid-cols-1 tablet:grid-cols-[minmax(0,1fr)_170px] md:grid-cols-[460px_1fr] gap-[14px] tablet:gap-x-[18px] tablet:gap-y-[10px] md:gap-16 tablet:items-start">
           {/* data-card-* mark the three reveal parts; the cover effect fades and
               rises them in as the card comes into view (see revealCard). */}
           <h3
             data-card-title
-            className="m-0 text-[44px] tablet:text-[32px] md:text-[58px] font-normal leading-none tracking-[-0.01em]"
+            className="m-0 text-[44px] tablet:text-[32px] md:text-[58px] font-normal leading-none tracking-[-0.01em] tablet:col-start-1 tablet:row-start-1"
             style={{ fontFamily: "'Season Mix-TRIAL', serif" }}
           >
             {title}
           </h3>
-          <div>
-            <div data-card-body>
+          <div className="tablet:contents">
+            <div data-card-body className="tablet:col-start-1 tablet:row-start-2">
               {isValues ? (
                 <ValuesContent intro={values.intro} items={values.items} />
               ) : (
@@ -182,7 +189,10 @@ function Card({ refProp, title, description, isValues, values, illustration, zIn
                 </p>
               )}
             </div>
-            <div data-card-illustration className="mt-10 tablet:mt-7 flex justify-center md:justify-start">
+            <div
+              data-card-illustration
+              className="mt-10 tablet:mt-0 flex justify-center md:justify-start tablet:justify-start tablet:col-start-2 tablet:row-start-1 tablet:row-span-2 tablet:self-start"
+            >
               {illustration}
             </div>
           </div>
@@ -473,10 +483,12 @@ function MissionVisionValues() {
                     <img
                       src={mvv.mission.image}
                       alt=""
-                      className="w-full max-w-[313px] tablet:max-w-[219px] h-auto"
+                      className="w-full max-w-[313px] tablet:max-w-[170px] h-auto"
                     />
                   ) : (
-                    <MissionIllustration className="w-[280px] h-[300px] tablet:w-[200px] tablet:h-[215px] max-w-full" />
+                    // tablet sizes keep each drawing's own viewBox ratio inside
+                    // the 170px right-hand column, so nothing letterboxes.
+                    <MissionIllustration className="w-[280px] h-[300px] tablet:w-[170px] tablet:h-[179px] max-w-full" />
                   )
                 }
               />
@@ -490,10 +502,10 @@ function MissionVisionValues() {
                     <img
                       src={mvv.vision.image}
                       alt=""
-                      className="w-full max-w-[313px] tablet:max-w-[219px] h-auto"
+                      className="w-full max-w-[313px] tablet:max-w-[170px] h-auto"
                     />
                   ) : (
-                    <VisionIllustration className="w-[480px] h-[240px] tablet:w-[336px] tablet:h-[168px] max-w-full" />
+                    <VisionIllustration className="w-[480px] h-[240px] tablet:w-[170px] tablet:h-[88px] max-w-full" />
                   )
                 }
               />
@@ -508,10 +520,10 @@ function MissionVisionValues() {
                     <img
                       src={mvv.values.image}
                       alt=""
-                      className="w-full max-w-[313px] tablet:max-w-[219px] h-auto"
+                      className="w-full max-w-[313px] tablet:max-w-[170px] h-auto"
                     />
                   ) : (
-                    <ValuesIllustration className="w-[480px] h-[320px] tablet:w-[336px] tablet:h-[224px] max-w-full" />
+                    <ValuesIllustration className="w-[480px] h-[320px] tablet:w-[170px] tablet:h-[113px] max-w-full" />
                   )
                 }
               />
