@@ -95,6 +95,43 @@ export function useScaledHeight(ref, scale, enabled) {
   return enabled ? height : null
 }
 
+// The viewport in px, kept in sync with resize and rotation.
+//
+// Viewport units are unusable inside a CSS `zoom`ed subtree because the engines
+// disagree about them: Blink resolves `100vw` against the raw viewport (so it
+// has to be divided by the zoom to come back out at exactly one viewport),
+// while WebKit already divides it by the zoom itself. The same
+// `calc(100vw / zoom)` therefore renders full-bleed in Chrome and exactly
+// 1/zoom of the width in Safari — on an iPad that collapsed the About page's
+// full-bleed image into a 430px column. Plain px are canvas-local units in both
+// engines, so measuring the viewport here and dividing by the scale in JS is
+// the only expression the two agree on.
+//
+// innerWidth is what `100vw` resolves to (scrollbar included);
+// documentElement.clientHeight is what `100vh` resolves to (the large viewport
+// on iOS, so it does not jitter as the toolbar collapses).
+export function useViewportPx() {
+  const [size, setSize] = useState(() =>
+    typeof window === 'undefined'
+      ? { width: 0, height: 0 }
+      : { width: window.innerWidth, height: document.documentElement.clientHeight }
+  )
+
+  useEffect(() => {
+    const measure = () =>
+      setSize({ width: window.innerWidth, height: document.documentElement.clientHeight })
+    measure()
+    window.addEventListener('resize', measure)
+    window.addEventListener('orientationchange', measure)
+    return () => {
+      window.removeEventListener('resize', measure)
+      window.removeEventListener('orientationchange', measure)
+    }
+  }, [])
+
+  return size
+}
+
 // True when the desktop layout is showing — the exact complement of the CSS
 // `md:` variant, so a component's animation branch (and its scale-wrapper
 // geometry) can never disagree with the layout it is applied to. Defaults to

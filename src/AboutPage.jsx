@@ -6,7 +6,7 @@ import avenueImage from './assets/AVENUE.jpg'
 import { cubicEase } from './easings'
 import { useRevealOnScroll } from './motion'
 import { useContent } from './api'
-import { useScale } from './useScale'
+import { useScale, useViewportPx } from './useScale'
 
 gsap.registerPlugin(ScrollTrigger)
 
@@ -82,6 +82,13 @@ function AboutPage() {
   // and the "why" intro column), and sticky drifts inside a scrolling transform
   // but pins correctly under zoom. zoom is 1 below 768px (mobile untouched).
   const scale = useScale()
+  // One full viewport, expressed in the zoomed canvas's own px. Measured rather
+  // than written as `calc(100vw / zoom)`: Chrome and Safari resolve viewport
+  // units inside `zoom` differently, and the Safari reading collapsed every
+  // full-bleed layer below to 1/zoom of the width — see useViewportPx.
+  const viewport = useViewportPx()
+  const bleedWidth = `${viewport.width / scale}px`
+  const stageHeight = `${viewport.height / scale}px`
 
   useLayoutEffect(() => {
     const ctx = gsap.context(() => {
@@ -129,11 +136,12 @@ function AboutPage() {
     <>
       <main className="bg-mist text-navy">
        {/* zoom locks the 1440 canvas to the viewport while keeping both sticky
-           mechanisms below drift-free. --zoom is exposed so the parallax vh
-           units can stay full-viewport (÷zoom) instead of scaling down. */}
+           mechanisms below drift-free. --bleed/--stage carry one full viewport
+           in canvas px, so the parallax stage and the full-bleed layers stay
+           edge-to-edge and full-height under the zoom. */}
        <div
          ref={revealRef}
-         style={{ zoom: scale, '--zoom': scale }}
+         style={{ zoom: scale, '--bleed': bleedWidth, '--stage': stageHeight }}
          className="mx-auto w-full max-w-[1440px] md:w-[1440px]"
        >
         <section className="flex flex-col items-center pt-[140px] md:pt-[180px] pb-16 md:pb-24 px-4 w-full max-w-[1440px] mx-auto">
@@ -163,15 +171,15 @@ function AboutPage() {
           className="relative bg-navy"
         >
           <div
-            className="sticky top-0 h-[calc(100vh/var(--zoom))] overflow-hidden bg-mist"
+            className="sticky top-0 h-[var(--stage)] overflow-hidden bg-mist"
             /* Break the pinned image out to the full viewport width (centered in
                the 1440 canvas via negative margin — no transform/inset, so the
                sticky pin and the blur-up reveal stay intact) so it stays edge-to-
-               edge once the zoom locks. Width is 100vw ÷ zoom so it renders as
-               exactly one viewport after the zoom (no horizontal overflow). */
+               edge once the zoom locks. --bleed is one viewport in canvas px, so
+               it renders as exactly one viewport after the zoom (no overflow). */
             style={{
-              width: 'calc(100vw / var(--zoom))',
-              marginLeft: 'calc((100% - 100vw / var(--zoom)) / 2)',
+              width: 'var(--bleed)',
+              marginLeft: 'calc((100% - var(--bleed)) / 2)',
             }}
           >
             <img
@@ -182,22 +190,26 @@ function AboutPage() {
             />
           </div>
 
-          {/* Content is pulled back over the sticky image with -mt-[100vh]; the
+          {/* Content is pulled back over the sticky image by one stage height; the
               section then grows to 100vh + text height, so the blur overlay always
               ends at the section boundary and never bleeds into the next section. */}
-          <div className="relative -mt-[calc(100vh/var(--zoom))] pointer-events-none">
-            <div className="h-[calc(100vh/var(--zoom))]" />
+          <div
+            className="relative pointer-events-none"
+            style={{ marginTop: 'calc(var(--stage) * -1)' }}
+          >
+            <div className="h-[var(--stage)]" />
 
             <div className="relative">
               <div
                 ref={overlayRef}
-                className="absolute bottom-0 -top-[calc(70vh/var(--zoom))] pointer-events-none"
+                className="absolute bottom-0 pointer-events-none"
                 style={{
+                  // Starts 70% of a stage above the copy, as -top-[70vh] did.
+                  top: 'calc(var(--stage) * -0.7)',
                   // Full-bleed to match the now edge-to-edge pinned image, so the
                   // blur/darken band covers the gutters too (no sharp seam at 1440).
-                  // 100vw ÷ zoom → exactly one viewport after zoom, no overflow.
-                  width: 'calc(100vw / var(--zoom))',
-                  left: 'calc((100% - 100vw / var(--zoom)) / 2)',
+                  width: 'var(--bleed)',
+                  left: 'calc((100% - var(--bleed)) / 2)',
                   backdropFilter: 'blur(32px) brightness(0.55)',
                   WebkitBackdropFilter: 'blur(32px) brightness(0.55)',
                   // Smoothstep (S-curve) mask: many stops with no slope kinks so the
@@ -238,7 +250,7 @@ function AboutPage() {
               reaching both viewport edges instead of guttering. `isolate` scopes the
               -z layer to this section — CSS `zoom` (unlike transform) makes no
               stacking context, so without it the -z layer sinks behind the page bg. */}
-          <div aria-hidden className="pointer-events-none absolute inset-y-0 left-1/2 -z-10 -translate-x-1/2 bg-[#D7DEE6]" style={{ width: 'calc(100vw / var(--zoom))' }} />
+          <div aria-hidden className="pointer-events-none absolute inset-y-0 left-1/2 -z-10 -translate-x-1/2 bg-[#D7DEE6]" style={{ width: 'var(--bleed)' }} />
           <div className="flex flex-col gap-10 md:flex-row md:gap-[208px] max-w-[var(--content-width)] mx-auto">
             <div className="shrink-0 md:sticky md:top-[140px] md:self-start md:w-[259px]">
               <h2
@@ -266,7 +278,7 @@ function AboutPage() {
         </section>
 
         <section className="relative isolate bg-navy text-mist px-[16px] md:px-[38px] pt-24 md:pt-[95px] pb-24 md:pb-32">
-          <div aria-hidden className="pointer-events-none absolute inset-y-0 left-1/2 -z-10 -translate-x-1/2 bg-navy" style={{ width: 'calc(100vw / var(--zoom))' }} />
+          <div aria-hidden className="pointer-events-none absolute inset-y-0 left-1/2 -z-10 -translate-x-1/2 bg-navy" style={{ width: 'var(--bleed)' }} />
           <div data-reveal-group className="max-w-[var(--content-width)] mx-auto">
             <p
               data-reveal
