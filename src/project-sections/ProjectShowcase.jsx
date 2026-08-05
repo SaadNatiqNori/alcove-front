@@ -5,7 +5,7 @@ import ArrowIcon from '../ArrowIcon'
 import { cubicBezier, cubicEase } from '../easings'
 import { prefersReducedMotion } from './motion'
 import { ScaleLock } from '../ScaleLock'
-import { DESKTOP_MIN } from '../breakpoints'
+import { useIsDesktop } from '../useScale'
 
 gsap.registerPlugin(ScrollTrigger)
 
@@ -66,8 +66,8 @@ function CarIllustration({ className }) {
 // vertically centered on the stage's center line, which is also constant.
 function Slide({ heading, bodyLeft, bodyRight, image }) {
   return (
-    <div className="h-full w-full px-[16px] tablet:px-10 md:px-14">
-      <div className="mx-auto grid max-w-[1600px] grid-cols-1 gap-12 tablet:gap-10 md:h-full md:grid-cols-2 md:gap-16">
+    <div className="h-full w-full px-[16px] tablet:px-[38px] md:px-14">
+      <div className="mx-auto grid max-w-[1600px] grid-cols-1 gap-12 tablet:gap-[60px] md:h-full md:grid-cols-2 md:gap-16">
         {/* Copy — flows from the stage top so the title position never shifts */}
         <div>
           <div className="relative pt-[6px] pb-1 md:pt-[9px]">
@@ -83,7 +83,7 @@ function Slide({ heading, bodyLeft, bodyRight, image }) {
             </div>
             <h2
               data-anim
-              className="m-0 whitespace-pre-line pl-6 tablet:pl-8 md:pl-8 text-[34px] tablet:text-[37px] md:text-[52px] font-normal leading-[1.05] tracking-[-0.01em] text-mist"
+              className="m-0 whitespace-pre-line pl-6 tablet:pl-8 md:pl-8 text-[34px] tablet:text-[46px] md:text-[52px] font-normal leading-[1.05] tracking-[-0.01em] text-mist"
               style={{ fontFamily: "'Season Mix-TRIAL', serif" }}
             >
               {heading}
@@ -96,7 +96,7 @@ function Slide({ heading, bodyLeft, bodyRight, image }) {
                 <p
                   data-anim
                   data-anim-speed="1.2"
-                  className="m-0 text-[15px] tablet:text-[16px] md:text-[15px] leading-[1.2] tracking-[0] text-[#E2EAF2]"
+                  className="m-0 text-[15px] tablet:text-[19px] md:text-[15px] leading-[1.2] tracking-[0] text-[#E2EAF2]"
                 >
                   {bodyLeft}
                 </p>
@@ -106,7 +106,7 @@ function Slide({ heading, bodyLeft, bodyRight, image }) {
                   data-anim
                   data-anim-speed="1.2"
                   data-anim-shift="1.5"
-                  className="m-0 text-[15px] tablet:text-[16px] md:text-[15px] leading-[1.2] tracking-[0] text-[#E2EAF2]"
+                  className="m-0 text-[15px] tablet:text-[19px] md:text-[15px] leading-[1.2] tracking-[0] text-[#E2EAF2]"
                 >
                   {bodyRight}
                 </p>
@@ -169,19 +169,11 @@ function ProjectShowcase({ slides = [] }) {
   const [transition, setTransition] = useState(null) // { from, to } while animating
   const count = slides.length
 
-  // On mobile the section drops the 100vh floor and sizes to its content, so
-  // there's no large empty gap above/below the centered slide.
-  const [isMobile, setIsMobile] = useState(() =>
-    typeof window !== 'undefined'
-      ? window.matchMedia(`(max-width: ${DESKTOP_MIN - 1}px)`).matches
-      : false
-  )
-  useEffect(() => {
-    const mq = window.matchMedia(`(max-width: ${DESKTOP_MIN - 1}px)`)
-    const onChange = (e) => setIsMobile(e.matches)
-    mq.addEventListener('change', onChange)
-    return () => mq.removeEventListener('change', onChange)
-  }, [])
+  // On anything but desktop the section drops the 100vh floor and sizes to its
+  // content, so there's no large empty gap above/below the centered slide.
+  // DESKTOP_QUERY, not a bare max-width:767 check — the latter left iPads on the
+  // desktop floor while their layout was already stacked.
+  const isMobile = !useIsDesktop()
 
   // Latest-value refs so the native wheel listener (bound once) reads live state
   // instead of the values captured when it was attached.
@@ -362,7 +354,7 @@ function ProjectShowcase({ slides = [] }) {
       <div
         ref={stageRef}
         data-showcase-reveal
-        className="w-full pb-4 pt-8 md:py-0"
+        className="w-full pb-4 tablet:pb-6 pt-8 tablet:pt-10 md:py-0"
         onPointerDown={onDown}
         onPointerUp={onUp}
         onPointerLeave={onUp}
@@ -395,7 +387,7 @@ function ProjectShowcase({ slides = [] }) {
       {/* Pagination mirrors the slide grid so the dots sit centered directly
           under the illustration column (right on desktop, centered when stacked). */}
       {count > 1 && (
-        <div className="w-full px-[16px] tablet:px-10 md:px-14 pb-16 tablet:pb-12 md:pb-0">
+        <div className="w-full px-[16px] tablet:px-[38px] md:px-14 pb-16 tablet:pb-[76px] md:pb-0">
           <div className="mx-auto grid max-w-[1600px] grid-cols-1 gap-12 tablet:gap-10 md:grid-cols-2 md:gap-16">
             <div className="hidden md:block" aria-hidden="true" />
             <div className="flex justify-center md:justify-end">

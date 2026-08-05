@@ -123,11 +123,11 @@ function SubsidiaryCard({ icon, title, description }) {
       // A no-op on phones (the cell is narrower than the cap) and on desktop,
       // where the zigzag cell is exactly 429px.
       //
-      // tablet: the card is as wide as its zigzag column allows, up to the same
-      // 429px cap — 429 on a 1024 iPad, 310 on a 768 one. Because it holds
-      // near-desktop width rather than scaling with the page, its contents sit
-      // at near-desktop sizes rather than the 0.711 page ratio; a 429px card
-      // with 27px type would read half-empty.
+      // tablet: the card is as wide as its zigzag column allows, up to the
+      // tighter 360px cap the column sets — 360 on a 1024 iPad, 310 on a 768
+      // one. Because it holds near-desktop width rather than scaling with the
+      // page, its contents sit at near-desktop sizes rather than the 0.711 page
+      // ratio; a 429px card with 27px type would read half-empty.
       className="flex flex-col rounded-[4px] p-[24px] tablet:p-[32px] md:p-[38px] w-full max-w-[429px] mx-auto"
       style={{ background: '#FFFFFF05' }}
     >
@@ -277,14 +277,18 @@ function SubsidiariesPage() {
               }}
             />
 
-            {/* tablet: the same zigzag as desktop, retuned to 1024 — two 429px
-                cards need a 100px gutter (2x429 + 100 = 958 inside the 976
-                content width) rather than desktop's 260, which puts the spine
-                50px off each card's inner edge. */}
-            <div className="relative grid grid-cols-1 tablet:grid-cols-2 md:grid-cols-2 gap-x-[260px] tablet:gap-x-[100px] gap-y-[38px] tablet:gap-y-[57px] md:gap-y-[80px]">
+            {/* tablet: the same zigzag as desktop, retuned to 1024 — a 48px
+                gutter rather than desktop's 260, so the spine sits 24px off
+                each card's inner edge (half the gutter). The cards are capped
+                at 360px here rather than desktop's 429 and so no longer span
+                the full 976 content width; because they are justified to their
+                column's inner edge, all of that slack falls on the outer edges
+                and the spine gap stays put at 24px. Keep the
+                connectors' `tablet:w-[24px]` in step with half this value. */}
+            <div className="relative grid grid-cols-1 tablet:grid-cols-2 md:grid-cols-2 gap-x-[260px] tablet:gap-x-[48px] gap-y-[38px] tablet:gap-y-[57px] md:gap-y-[80px]">
               <div
                 data-reveal
-                className="relative tablet:w-full tablet:max-w-[429px] tablet:justify-self-end tablet:col-start-1 tablet:row-start-1 md:w-[429px] md:justify-self-end md:col-start-1 md:row-start-1"
+                className="relative tablet:w-full tablet:max-w-[360px] tablet:justify-self-end tablet:col-start-1 tablet:row-start-1 md:w-[429px] md:justify-self-end md:col-start-1 md:row-start-1"
               >
                 <SubsidiaryCard
                   icon={iconFor(items[0])}
@@ -301,7 +305,7 @@ function SubsidiariesPage() {
                 />
                 <div
                   aria-hidden="true"
-                  className="hidden tablet:block md:block absolute top-1/2 left-full w-[130px] tablet:w-[50px] h-[1px]"
+                  className="hidden tablet:block md:block absolute top-1/2 left-full w-[130px] tablet:w-[24px] h-[1px]"
                   style={{
                     backgroundImage:
                       'repeating-linear-gradient(to right, #FFFFFF40 0, #FFFFFF40 6px, transparent 6px, transparent 12px)',
@@ -311,7 +315,7 @@ function SubsidiariesPage() {
 
               <div
                 data-reveal
-                className="relative tablet:w-full tablet:max-w-[429px] tablet:justify-self-start tablet:col-start-2 tablet:row-start-2 md:w-[429px] md:justify-self-start md:col-start-2 md:row-start-2"
+                className="relative tablet:w-full tablet:max-w-[360px] tablet:justify-self-start tablet:col-start-2 tablet:row-start-2 md:w-[429px] md:justify-self-start md:col-start-2 md:row-start-2"
               >
                 <SubsidiaryCard
                   icon={iconFor(items[1])}
@@ -328,7 +332,7 @@ function SubsidiariesPage() {
                 />
                 <div
                   aria-hidden="true"
-                  className="hidden tablet:block md:block absolute top-1/2 right-full w-[130px] tablet:w-[50px] h-[1px]"
+                  className="hidden tablet:block md:block absolute top-1/2 right-full w-[130px] tablet:w-[24px] h-[1px]"
                   style={{
                     backgroundImage:
                       'repeating-linear-gradient(to right, #FFFFFF40 0, #FFFFFF40 6px, transparent 6px, transparent 12px)',
@@ -338,7 +342,7 @@ function SubsidiariesPage() {
 
               <div
                 data-reveal
-                className="relative tablet:w-full tablet:max-w-[429px] tablet:justify-self-end tablet:col-start-1 tablet:row-start-3 md:w-[429px] md:justify-self-end md:col-start-1 md:row-start-3"
+                className="relative tablet:w-full tablet:max-w-[360px] tablet:justify-self-end tablet:col-start-1 tablet:row-start-3 md:w-[429px] md:justify-self-end md:col-start-1 md:row-start-3"
               >
                 <SubsidiaryCard
                   icon={iconFor(items[2])}
@@ -347,7 +351,7 @@ function SubsidiariesPage() {
                 />
                 <div
                   aria-hidden="true"
-                  className="hidden tablet:block md:block absolute top-1/2 left-full w-[130px] tablet:w-[50px] h-[1px]"
+                  className="hidden tablet:block md:block absolute top-1/2 left-full w-[130px] tablet:w-[24px] h-[1px]"
                   style={{
                     backgroundImage:
                       'repeating-linear-gradient(to right, #FFFFFF40 0, #FFFFFF40 6px, transparent 6px, transparent 12px)',
@@ -358,8 +362,15 @@ function SubsidiariesPage() {
           </div>
 
           {/* Revealed as one block, like the cards above — the panel reads as a
-              single card, so staggering its parts would fight that. */}
-          <div data-reveal className="mt-24 tablet:mt-[165px] md:mt-[232px] max-w-[1130px] mx-auto bg-[#FFFFFF05] rounded-[6px] px-[16px] tablet:px-[50px] py-[54px] tablet:py-[57px] md:px-[70px] md:py-[80px] flex flex-col gap-12 tablet:gap-[50px] md:gap-[70px]">
+              single card, so staggering its parts would fight that.
+
+              tablet: 768 = 2x360 + the 48px gutter, i.e. exactly the zigzag
+              pair's outer edges, so the panel's sides line up with the left
+              cards' left edge and the right card's right edge. The 1130px cap
+              does that job on desktop but is wider than the 976px tablet
+              content box, which would leave the panel full-bleed and the cards
+              inset from it. Retune it with the card cap and the gutter. */}
+          <div data-reveal className="mt-24 tablet:mt-[165px] md:mt-[232px] max-w-[1130px] tablet:max-w-[768px] mx-auto bg-[#FFFFFF05] rounded-[6px] px-[16px] tablet:px-[50px] py-[54px] tablet:py-[57px] md:px-[70px] md:py-[80px] flex flex-col gap-12 tablet:gap-[50px] md:gap-[70px]">
             <div className="flex gap-[28px]">
               <div
                 aria-hidden="true"
@@ -376,7 +387,7 @@ function SubsidiariesPage() {
             </div>
             <div className="grid grid-cols-1 tablet:grid-cols-2 md:grid-cols-2 gap-10 tablet:gap-[36px] md:gap-[50px] max-w-[990px]">
               <p
-                className="m-0 text-[16px] md:text-[22px] leading-[1.25] tracking-[0] text-mist max-w-[470px]"
+                className="m-0 text-[16px] tablet:text-[18px] md:text-[22px] leading-[1.25] tracking-[0] text-mist max-w-[470px]"
               >
                 <span className="opacity-80">
                   {(what.left ?? []).map((seg, i) =>
@@ -388,7 +399,7 @@ function SubsidiariesPage() {
                   )}
                 </span>
               </p>
-              <p className="m-0 text-[16px] md:text-[22px] leading-[1.25] tracking-[0] text-mist max-w-[470px]">
+              <p className="m-0 text-[16px] tablet:text-[18px] md:text-[22px] leading-[1.25] tracking-[0] text-mist max-w-[470px]">
                 <span className="opacity-80">{what.right}</span>
               </p>
             </div>

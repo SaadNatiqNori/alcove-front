@@ -5,7 +5,7 @@ import { IoArrowBack, IoArrowForward } from 'react-icons/io5'
 import { cubicEase } from '../easings'
 import { prefersReducedMotion } from './motion'
 import { ScaleLock } from '../ScaleLock'
-import { DESKTOP_MIN } from '../breakpoints'
+import { useIsDesktop } from '../useScale'
 
 gsap.registerPlugin(ScrollTrigger)
 
@@ -27,16 +27,10 @@ function ProjectGallery({
   const [atStart, setAtStart] = useState(true)
   const [atEnd, setAtEnd] = useState(images.length <= 1)
   // Mobile uses a near-full-width card (16px gutters) instead of the centred
-  // 64vw peek-carousel, so the slide width differs by breakpoint.
-  const [isDesktop, setIsDesktop] = useState(
-    () => typeof window !== 'undefined' && window.matchMedia(`(min-width: ${DESKTOP_MIN}px)`).matches
-  )
-  useEffect(() => {
-    const mq = window.matchMedia(`(min-width: ${DESKTOP_MIN}px)`)
-    const update = () => setIsDesktop(mq.matches)
-    mq.addEventListener('change', update)
-    return () => mq.removeEventListener('change', update)
-  }, [])
+  // 64vw peek-carousel, so the slide width differs by breakpoint. DESKTOP_QUERY,
+  // not a bare min-width:768 check — the latter matched iPads and gave them the
+  // centred peek-carousel while the rest of the section rendered mobile values.
+  const isDesktop = useIsDesktop()
   // Inter-slide gap: 16px on mobile (matches the 16px left gutter and lets the
   // next card peek), the wider GAP on desktop.
   const gap = isDesktop ? GAP : 16
@@ -179,7 +173,7 @@ function ProjectGallery({
       innerRef={rootRef}
       fill
       bg="bg-[#0E0E0E]"
-      className="relative flex flex-col items-center justify-center overflow-hidden text-mist pt-[84px] tablet:pt-[102px] pb-[72px] tablet:pb-[28px] md:pt-36 md:pb-10 tablet:min-h-[calc(100vh/var(--scale))] md:min-h-[calc(100vh/var(--scale))]"
+      className="relative flex flex-col items-center justify-center overflow-hidden text-mist pt-[84px] tablet:pt-[102px] pb-[72px] tablet:pb-[90px] md:pt-36 md:pb-10 md:min-h-[calc(100vh/var(--scale))]"
     >
       <div className="px-6 tablet:px-10 md:px-10 flex flex-col items-center text-center">
         {/* Same pill as the Contact page badge, recoloured for the dark section
@@ -192,7 +186,7 @@ function ProjectGallery({
         </span>
         <h2
           data-gallery-item
-          className="m-0 mt-[23px] tablet:mt-7 md:mt-7 text-center text-[32px] tablet:text-[36px] md:text-[50px] font-[420] leading-[1] tracking-[-0.04em] text-mist"
+          className="m-0 mt-[23px] tablet:mt-7 md:mt-7 text-center text-[32px] tablet:text-[42px] md:text-[50px] font-[420] leading-[1] tracking-[-0.04em] text-mist"
           style={{
             fontFamily: "'Season Mix VF', serif",
             textBoxTrim: 'trim-both',
@@ -209,7 +203,7 @@ function ProjectGallery({
         ref={scrollRef}
         data-gallery-item
         data-horizontal-scroll
-        className="mt-10 tablet:mt-9 md:mt-12 w-full overflow-x-auto overflow-y-hidden flex cursor-grab select-none [&::-webkit-scrollbar]:hidden"
+        className="mt-10 tablet:mt-12 md:mt-12 w-full overflow-x-auto overflow-y-hidden flex cursor-grab select-none [&::-webkit-scrollbar]:hidden"
         style={{
           // Mobile: wide card aligned to a 16px start gutter, with 16px gap and
           // a 16px peek of the next card (card = 100vw − 16 − 16 − 16). Desktop
@@ -237,11 +231,11 @@ function ProjectGallery({
             <img
               src={img.src}
               alt={img.alt ?? ''}
-              // tablet: `isDesktop` above is a bare min-width:768 check, so an
-              // iPad already gets the centred 64vw peek-carousel — a 655px
-              // slide. 313px keeps that slide at desktop's 2.09:1 crop instead
-              // of the phone's 193px, which would letterbox it to 3.4:1.
-              className="block w-full h-[193px] tablet:h-[313px] md:h-[440px] object-cover"
+              // tablet: the mobile track is active on iPad now (isDesktop is
+              // DESKTOP_QUERY), so the slide is a `100vw - 48px` card whose width
+              // varies 720→976px across iPad sizes. A fixed height cannot hold
+              // the phone's ~1.98:1 crop across that range — the ratio can.
+              className="block w-full h-[193px] tablet:h-auto tablet:aspect-[1.98/1] md:h-[440px] object-cover"
               draggable="false"
             />
           </div>
