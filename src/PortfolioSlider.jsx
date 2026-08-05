@@ -530,7 +530,7 @@ function PortfolioSlider() {
         <div className="md:hidden">{checkAllCta}</div>
       </div>
       <p
-        className="m-0 text-[14px] tablet:text-[11px] leading-5 tablet:leading-[16px] text-navy"
+        className="m-0 text-[14px] tablet:text-[11px] leading-5 tablet:leading-[16px] tablet:pe-1 text-navy"
         style={{ fontFamily: "'Season Sans-TRIAL', sans-serif" }}
       >
         {portfolio.description}
@@ -585,7 +585,7 @@ function PortfolioSlider() {
             <div
               ref={scrollRef}
               data-horizontal-scroll
-              className="flex flex-col md:flex-row tablet:flex-row items-stretch gap-4 tablet:gap-2 md:gap-2 px-4 tablet:pr-0 md:pl-[38px] md:pr-2 tablet:overflow-x-auto tablet:overflow-y-hidden md:overflow-x-auto md:overflow-y-hidden md:cursor-grab select-none [&::-webkit-scrollbar]:hidden"
+              className="flex flex-col md:flex-row tablet:flex-row items-stretch gap-4 tablet:gap-[0.13rem] md:gap-2 px-4 tablet:pr-0 md:pl-[38px] md:pr-2 tablet:overflow-x-auto tablet:overflow-y-hidden md:overflow-x-auto md:overflow-y-hidden md:cursor-grab select-none [&::-webkit-scrollbar]:hidden"
               style={{
                 scrollbarWidth: 'none',
                 WebkitOverflowScrolling: 'touch',

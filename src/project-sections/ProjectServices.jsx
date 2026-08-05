@@ -57,18 +57,18 @@ function ProjectServices({
         style={{ zoom: scale }}
         className="mx-auto w-full max-w-[1440px] px-[16px] tablet:px-[38px] py-24 tablet:py-[91px] md:w-[1440px] md:px-[38px] md:py-32"
       >
-      <div className="mx-auto grid grid-cols-1 gap-12 tablet:gap-10 tablet:grid-cols-[1fr_388px] md:grid-cols-2 md:gap-16 lg:grid-cols-[1fr_546px] lg:gap-24">
+      <div className="mx-auto grid grid-cols-1 gap-12 tablet:gap-[64px] md:grid-cols-2 md:gap-16 lg:grid-cols-[1fr_546px] lg:gap-24">
         {/* Sticky intro */}
-        <div className="tablet:sticky tablet:top-[100px] tablet:self-start md:sticky md:top-[120px] md:self-start">
+        <div className="md:sticky md:top-[120px] md:self-start">
           <p
-            className="m-0 text-[18px] tablet:text-[16px] md:text-[22px] leading-none tracking-[-0.04em] text-[#1C2D4F]"
+            className="m-0 text-[18px] tablet:text-[22px] md:text-[22px] leading-none tracking-[-0.04em] text-[#1C2D4F]"
             style={{ fontFamily: "'Season Mix VF', serif", fontWeight: 580 }}
           >
             {eyebrow}
           </p>
           {heading && (
             <h2
-              className="m-0 mt-6 max-w-[664px] text-[24px] tablet:text-[24px] md:text-[34px] font-normal leading-none tracking-normal text-[#1C2D4F]"
+              className="m-0 mt-6 max-w-[664px] text-[24px] tablet:text-[30px] md:text-[34px] font-normal leading-none tracking-normal text-[#1C2D4F]"
               style={{ fontFamily: "'Season Sans-TRIAL', sans-serif" }}
             >
               {heading}
@@ -88,26 +88,26 @@ function ProjectServices({
             <div
               key={item.title ?? i}
               data-svc-item
-              className="border-t border-[#1C2D4F] py-12 tablet:py-[46px] md:py-16"
+              className="border-t border-[#1C2D4F] py-12 tablet:py-[58px] md:py-16"
             >
               {item.image ? (
                 <img
                   src={item.image}
                   alt=""
                   aria-hidden="true"
-                  className="h-[24px] tablet:h-[27px] md:h-[38px] w-[22px] tablet:w-[24px] md:w-[34px] object-contain"
+                  className="h-[24px] tablet:h-[31px] md:h-[38px] w-[22px] tablet:w-[28px] md:w-[34px] object-contain"
                   draggable="false"
                 />
               ) : (
                 <ServiceIcon name={item.icon} className="h-[38px] w-[34px] text-[#1C2D4F]" />
               )}
               <h3
-                className="m-0 mt-[26px] tablet:mt-7 md:mt-8 text-[24px] tablet:text-[23px] md:text-[32px] font-normal leading-none tracking-[-0.04em] text-[#1C2D4F]"
+                className="m-0 mt-[26px] tablet:mt-7 md:mt-8 text-[24px] tablet:text-[30px] md:text-[32px] font-normal leading-none tracking-[-0.04em] text-[#1C2D4F]"
                 style={{ fontFamily: "'Season Mix VF', serif", fontWeight: 420 }}
               >
                 {item.title}
               </h3>
-              <p className="m-0 mt-[18px] tablet:mt-5 md:mt-5 text-[16px] md:text-[18px] font-normal leading-5 tracking-normal text-[#5A6472] max-w-[429px]">
+              <p className="m-0 mt-[18px] tablet:mt-5 md:mt-5 text-[16px] tablet:text-[19px] md:text-[18px] font-normal leading-5 tracking-normal text-[#5A6472] max-w-[429px] tablet:max-w-[620px]">
                 {(item.description ?? []).map((seg, si) => (
                   <span
                     key={si}

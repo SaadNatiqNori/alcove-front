@@ -2,8 +2,7 @@ import { cloneElement, useEffect, useLayoutEffect, useRef, useState } from 'reac
 import { gsap } from 'gsap'
 import { ScrollTrigger } from 'gsap/ScrollTrigger'
 import { prefersReducedMotion } from './motion'
-import { useScale, useIsTabletPortrait } from '../useScale'
-import { DESKTOP_MIN } from '../breakpoints'
+import { useScale, useIsDesktop } from '../useScale'
 
 gsap.registerPlugin(ScrollTrigger)
 
@@ -20,22 +19,21 @@ gsap.registerPlugin(ScrollTrigger)
 function ProjectOpening({ hero, banner }) {
   const rootRef = useRef(null)
   const heroWrapRef = useRef(null)
-  // iPad portrait renders the stage 1:1, matching the hero and banner inside it
-  // (both pass ScaleLock's `unlockTablet`). The reveal geometry below is all
-  // derived from `scale`, so the whole scrub follows without further changes.
-  const isTablet = useIsTabletPortrait()
-  const zoomScale = useScale()
-  const scale = isTablet ? 1 : zoomScale
-
-  const [cinematic, setCinematic] = useState(
-    () => window.matchMedia(`(min-width: ${DESKTOP_MIN}px)`).matches && !prefersReducedMotion()
-  )
+  // The reveal is part of the desktop composition. iPad portrait renders the
+  // mobile composition instead (see the non-cinematic branch below), so this
+  // reads DESKTOP_QUERY via useIsDesktop rather than a bare min-width check —
+  // a bare 768px check matches iPads and produced a hybrid layout that exists
+  // in no design: mobile CSS values under a desktop scroll stage.
+  const scale = useScale()
+  const isDesktop = useIsDesktop()
+  const [reduceMotion, setReduceMotion] = useState(() => prefersReducedMotion())
   useEffect(() => {
-    const mq = window.matchMedia(`(min-width: ${DESKTOP_MIN}px)`)
-    const update = () => setCinematic(mq.matches && !prefersReducedMotion())
+    const mq = window.matchMedia('(prefers-reduced-motion: reduce)')
+    const update = () => setReduceMotion(mq.matches)
     mq.addEventListener('change', update)
     return () => mq.removeEventListener('change', update)
   }, [])
+  const cinematic = isDesktop && !reduceMotion
 
   useLayoutEffect(() => {
     if (!cinematic) return

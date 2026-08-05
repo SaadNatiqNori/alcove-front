@@ -432,12 +432,12 @@ function CardsSection() {
             height: `${100 / scale}vh`,
           }}
         >
-          <main className="relative h-full max-w-[1440px] mx-auto flex flex-col bg-navy px-4 pb-8 pt-[88px] text-[#d6deea] md:px-8 md:py-12">
+          <main className="relative h-full max-w-[1440px] mx-auto flex flex-col bg-navy px-4 pb-8 pt-[88px] tablet:pt-[30px] tablet:pb-4 text-[#d6deea] md:px-8 md:py-12">
           <div className="relative mx-auto flex flex-1 items-center max-w-[1440px] w-full">
             <section ref={heroTextRef} aria-label="Company introduction">
               {/* tablet: iPad portrait zooms the 430px mobile canvas by
                   1.79-2.38x, so the phone's 34px intro renders 61-81px. */}
-              <p className="m-0 text-[34px] tablet:text-[24px] font-normal not-italic leading-[110%] tracking-[-0.01em] md:text-[58px]">
+              <p className="m-0 text-[34px] tablet:text-[26px] font-normal not-italic leading-[110%] tracking-[-0.01em] md:text-[58px]">
                 {words.map((word, i) => {
                   const cleanWord = word.replace(/[.,]/g, '')
                   const isAccent = ACCENT_WORDS.has(cleanWord)

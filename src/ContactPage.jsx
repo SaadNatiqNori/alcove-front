@@ -326,10 +326,10 @@ function ContactPage() {
       {/* Form area — the header pins while the card scrolls up over it.
           The section's top padding matches the sticky offset so the header
           doesn't jump on first paint. */}
-      <section className="relative px-4 pt-[128px] tablet:pt-[100px] md:pt-[140px] pb-[150px] tablet:pb-[107px]">
+      <section className="relative px-4 pt-[128px] tablet:pt-[140px] md:pt-[140px] pb-[150px] tablet:pb-[107px]">
         <div
           ref={headerRef}
-          className="sticky top-[128px] tablet:top-[100px] md:top-[140px] z-0 flex flex-col items-center text-center"
+          className="sticky top-[128px] tablet:top-[140px] md:top-[140px] z-0 flex flex-col items-center text-center"
         >
           <span className="inline-flex items-center justify-center gap-[10px] rounded-[31px] border-[0.5px] border-[#1C2D4F] px-[9px] pb-[7px] pt-[10px] font-['Akkurat_Mono',monospace] text-[14px] font-medium leading-[1.15] tracking-[-0.28px] text-center uppercase text-[#1C2D4F] h-[24px]">
             {header.badge}

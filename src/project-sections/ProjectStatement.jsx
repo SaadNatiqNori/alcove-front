@@ -30,10 +30,10 @@ function ProjectStatement({ segments = [] }) {
   }, [])
 
   return (
-    <ScaleLock unlockTablet className="flex items-center px-[16px] tablet:px-10 md:px-10 py-[122px] tablet:py-0 md:py-0 tablet:min-h-[calc(100vh/var(--scale))] md:min-h-[calc(100vh/var(--scale))]">
+    <ScaleLock unlockTablet className="flex items-center px-[16px] tablet:px-[38px] md:px-10 py-[122px] tablet:py-[150px] md:py-0 md:min-h-[calc(100vh/var(--scale))]">
       <p
         ref={rootRef}
-        className="m-0 max-w-[1128px] text-[35px] tablet:text-[43px] md:text-[60px] font-[420] leading-[1.15] tracking-[-0.02em] text-[#AAB2C0]"
+        className="m-0 max-w-[1128px] text-[35px] tablet:text-[48px] md:text-[60px] font-[420] leading-[1.15] tracking-[-0.02em] text-[#AAB2C0]"
         style={{
           fontFamily: "'Season Mix VF', serif",
           textBoxTrim: 'trim-both',

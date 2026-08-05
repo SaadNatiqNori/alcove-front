@@ -72,7 +72,7 @@ function ProjectBanner({
   // they did not: `md:` does not match on tablet portrait, so the CSS was
   // px-6/mt-[52px] while the timeline forced 40/68 inline at scrub 0.
   const cls = onDark
-    ? 'px-[16px] mt-[72px] pb-[104px]'
+    ? 'px-[16px] tablet:px-[38px] mt-[72px] tablet:mt-[90px] pb-[104px] tablet:pb-[130px]'
     : 'px-6 tablet:px-10 md:px-10 mt-[52px] tablet:mt-[68px] md:mt-[68px]'
   if (!locked) {
     return <section className={cls}>{inner}</section>

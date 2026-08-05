@@ -1,12 +1,11 @@
-import { useEffect, useLayoutEffect, useRef, useState } from 'react'
+import { useLayoutEffect, useRef, useState } from 'react'
 import { gsap } from 'gsap'
 import { ScrollTrigger } from 'gsap/ScrollTrigger'
 import { cubicEase } from '../easings'
 import { prefersReducedMotion } from './motion'
 import { OrbitSVG, ShieldSVG, CirclesSVG } from './LocationIllustrations'
-import { useScale, useIsTabletPortrait } from '../useScale'
+import { useScale, useIsTabletPortrait, useIsDesktop } from '../useScale'
 import { ScaleLock } from '../ScaleLock'
-import { DESKTOP_MIN } from '../breakpoints'
 
 gsap.registerPlugin(ScrollTrigger)
 
@@ -30,18 +29,12 @@ function ProjectLocation({ title = 'Location', items = [] }) {
   const zoomScale = useScale()
   const scale = isTablet ? 1 : zoomScale
 
-  // Below 768px the layout collapses into a single stacked column: the centre
-  // illustration stage is dropped and each item's illustration is shown inline
-  // inside its own accordion body instead.
-  const [isMobile, setIsMobile] = useState(
-    () => typeof window !== 'undefined' && !window.matchMedia(`(min-width: ${DESKTOP_MIN}px)`).matches
-  )
-  useEffect(() => {
-    const mq = window.matchMedia(`(min-width: ${DESKTOP_MIN}px)`)
-    const update = () => setIsMobile(!mq.matches)
-    mq.addEventListener('change', update)
-    return () => mq.removeEventListener('change', update)
-  }, [])
+  // Below the desktop layout the section collapses into a single stacked column:
+  // the centre illustration stage is dropped and each item's illustration is
+  // shown inline inside its own accordion body instead, with every body open.
+  // DESKTOP_QUERY, not a bare min-width:768 check — the latter made iPads toggle
+  // the accordion while rendering the stacked mobile layout around it.
+  const isMobile = !useIsDesktop()
 
   // Entrance
   useLayoutEffect(() => {
@@ -97,11 +90,11 @@ function ProjectLocation({ title = 'Location', items = [] }) {
       bg="bg-[#161A24]"
       className="relative flex items-center overflow-hidden text-mist"
     >
-      <div className="mx-auto flex w-full max-w-[1720px] flex-col items-start gap-12 tablet:gap-10 px-[16px] tablet:px-[38px] py-[65px] tablet:py-[80px] md:flex-row md:items-center md:justify-between md:gap-0 md:px-[38px] md:py-0">
+      <div className="mx-auto flex w-full max-w-[1720px] flex-col items-start gap-12 tablet:gap-[60px] px-[16px] tablet:px-[38px] py-[65px] tablet:py-[80px] md:flex-row md:items-center md:justify-between md:gap-0 md:px-[38px] md:py-0">
         {/* Title */}
         <h2
           data-loc-item
-          className="m-0 shrink-0 text-[44px] tablet:text-[37px] md:text-[52px] font-normal leading-[1] tracking-[-0.01em] text-[#ECD898]"
+          className="m-0 shrink-0 text-[44px] tablet:text-[56px] md:text-[52px] font-normal leading-[1] tracking-[-0.01em] text-[#ECD898]"
           style={{ fontFamily: "'Season Mix-TRIAL', serif" }}
         >
           {title}
@@ -153,7 +146,7 @@ function ProjectLocation({ title = 'Location', items = [] }) {
                   className="flex w-full items-center justify-between gap-6 pt-5 pb-5 text-left"
                 >
                   <span
-                    className="text-[22px] tablet:text-[19px] md:text-[26px] font-normal leading-[1.15] tracking-[-0.02em] text-[#E8ECF1]"
+                    className="text-[22px] tablet:text-[28px] md:text-[26px] font-normal leading-[1.15] tracking-[-0.02em] text-[#E8ECF1]"
                     style={{ textBoxTrim: 'trim-both', textBoxEdge: 'cap alphabetic' }}
                   >
                     {item.label}
@@ -170,44 +163,53 @@ function ProjectLocation({ title = 'Location', items = [] }) {
                     <span className="absolute left-1/2 top-0 h-full w-[1.5px] -translate-x-1/2 bg-current" />
                   </span>
                 </button>
-                <div
-                  className="grid"
-                  style={{
-                    // On mobile every body stays open; on desktop it toggles.
-                    gridTemplateRows: isMobile || isOpen ? '1fr' : '0fr',
-                    transition: TRANSITION('grid-template-rows'),
-                  }}
-                >
-                  <div className="overflow-hidden">
-                    <p
-                      className="m-0 max-w-[349px] tablet:max-w-[560px] pt-6 pb-7 text-[14px] tablet:text-[16px] leading-[1] tablet:leading-[1.35] tracking-[0] text-[#E2EAF2]"
-                      style={{ textBoxTrim: 'trim-both', textBoxEdge: 'cap alphabetic' }}
-                    >
-                      {item.body}
-                    </p>
+                {/* Body copy + illustration. On tablet the two sit side by side
+                    — copy left, illustration right — so the iPad's extra width
+                    is used instead of stacking a centred illustration under a
+                    half-empty line of text. This is the page's one deliberate
+                    `tablet:` structural rule (see the design doc): phones keep
+                    stacking, and on desktop the illustration is hidden entirely
+                    because the centre stage takes over. Both children stay
+                    independently collapsible, so the copy can be open while the
+                    illustration is closed. */}
+                <div className="tablet:flex tablet:items-start tablet:justify-between tablet:gap-10">
+                  <div
+                    className="grid tablet:min-w-0 tablet:flex-1"
+                    style={{
+                      // On mobile every body stays open; on desktop it toggles.
+                      gridTemplateRows: isMobile || isOpen ? '1fr' : '0fr',
+                      transition: TRANSITION('grid-template-rows'),
+                    }}
+                  >
+                    <div className="overflow-hidden">
+                      <p
+                        className="m-0 max-w-[349px] tablet:max-w-[560px] pt-6 pb-7 text-[14px] tablet:text-[18px] leading-[1] tablet:leading-[1.35] tracking-[0] text-[#E2EAF2]"
+                        style={{ textBoxTrim: 'trim-both', textBoxEdge: 'cap alphabetic' }}
+                      >
+                        {item.body}
+                      </p>
+                    </div>
                   </div>
-                </div>
-                {/* Mobile-only: the illustration lives inside the open item's
-                    body (the centre stage is hidden below 768px). */}
-                <div
-                  className="grid md:hidden"
-                  aria-hidden="true"
-                  style={{
-                    gridTemplateRows: isOpen ? '1fr' : '0fr',
-                    transition: TRANSITION('grid-template-rows'),
-                  }}
-                >
-                  <div className="overflow-hidden">
-                    <div className="mx-auto flex aspect-square w-[174px] tablet:w-[241px] md:w-[300px] max-w-full items-center justify-center pb-8">
-                      {item.image ? (
-                        <img
-                          src={item.image}
-                          alt=""
-                          className="h-full w-full object-contain"
-                        />
-                      ) : (
-                        Illustration && <Illustration className="h-full w-full" />
-                      )}
+                  <div
+                    className="grid md:hidden tablet:w-[241px] tablet:shrink-0"
+                    aria-hidden="true"
+                    style={{
+                      gridTemplateRows: isOpen ? '1fr' : '0fr',
+                      transition: TRANSITION('grid-template-rows'),
+                    }}
+                  >
+                    <div className="overflow-hidden">
+                      <div className="mx-auto flex aspect-square w-[174px] tablet:w-[241px] md:w-[300px] max-w-full items-center justify-center pb-8">
+                        {item.image ? (
+                          <img
+                            src={item.image}
+                            alt=""
+                            className="h-full w-full object-contain"
+                          />
+                        ) : (
+                          Illustration && <Illustration className="h-full w-full" />
+                        )}
+                      </div>
                     </div>
                   </div>
                 </div>
