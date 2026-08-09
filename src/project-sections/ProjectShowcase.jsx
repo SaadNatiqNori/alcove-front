@@ -66,7 +66,7 @@ function CarIllustration({ className }) {
 // vertically centered on the stage's center line, which is also constant.
 function Slide({ heading, bodyLeft, bodyRight, image }) {
   return (
-    <div className="h-full w-full px-[16px] tablet:px-[38px] md:px-14">
+    <div className="h-full w-full px-[16px] tablet:px-[38px] md:px-24">
       <div className="mx-auto grid max-w-[1600px] grid-cols-1 gap-12 tablet:gap-[60px] md:h-full md:grid-cols-2 md:gap-16">
         {/* Copy — flows from the stage top so the title position never shifts */}
         <div>
@@ -117,7 +117,7 @@ function Slide({ heading, bodyLeft, bodyRight, image }) {
 
         {/* Illustration — centered on the stage's fixed center line */}
         <div className="flex items-center justify-center md:justify-end">
-          <div data-anim data-anim-speed="1.1" className="w-full max-w-[520px]">
+          <div data-anim data-anim-speed="1.1" className="w-full max-w-[187px] md:max-w-[273px]">
             {image ? (
               <img
                 src={image}
@@ -387,11 +387,13 @@ function ProjectShowcase({ slides = [] }) {
       {/* Pagination mirrors the slide grid so the dots sit centered directly
           under the illustration column (right on desktop, centered when stacked). */}
       {count > 1 && (
-        <div className="w-full px-[16px] tablet:px-[38px] md:px-14 pb-16 tablet:pb-[76px] md:pb-0">
+        <div className="w-full px-[16px] tablet:px-[38px] md:px-24 pb-16 tablet:pb-[76px] md:pb-0">
           <div className="mx-auto grid max-w-[1600px] grid-cols-1 gap-12 tablet:gap-10 md:grid-cols-2 md:gap-16">
             <div className="hidden md:block" aria-hidden="true" />
             <div className="flex justify-center md:justify-end">
-              <div className="mt-10 flex w-full max-w-[520px] flex-col items-center gap-8 md:mt-14">
+              {/* max-w mirrors the illustration's, so the dots and arrows share
+                  its centre line instead of the wider column's. */}
+              <div className="mt-10 flex w-full max-w-[187px] md:max-w-[273px] flex-col items-center gap-8 md:mt-14">
                 <div className="flex items-center justify-center gap-2.5">
                   {slides.map((_, i) => (
                     <button
