@@ -136,6 +136,7 @@ function Slide({ heading, bodyLeft, bodyRight, image }) {
   )
 }
 
+
 const SHIFT = 80 // px each element travels (within its own box) on a slide change
 const EXIT_EASE = cubicBezier(0.55, 0, 1, 0.54) // level 1: accelerating exit (quicker take on Figma's 0.66, 0, 1, 0.54)
 const ENTER_EASE = cubicBezier(0, 0.51, 0.39, 1) // level 3: decelerating entrance
