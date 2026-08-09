@@ -38,6 +38,11 @@ function ProjectStatement({ segments = [] }) {
           fontFamily: "'Season Mix VF', serif",
           textBoxTrim: 'trim-both',
           textBoxEdge: 'cap alphabetic',
+          // Segment gaps are authored in the CMS as spaces at the edges of
+          // each `text`. `normal` would collapse a run of them to one, so an
+          // admin who types a wider gap gets no say in it — `pre-wrap` renders
+          // every space typed while still wrapping the paragraph as usual.
+          whiteSpace: 'pre-wrap',
         }}
       >
         {segments.map((seg, i) => (
