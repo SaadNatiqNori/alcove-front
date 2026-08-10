@@ -603,6 +603,20 @@ function PortfolioSlider() {
                 marginRight: isMobile
                   ? undefined
                   : `calc((100vw / ${scale} - 1440px) / -2)`,
+                // ...and the same on the left, so the track CLIPS at the viewport
+                // edge rather than at the 1440 canvas. The gutter is only non-zero
+                // once the scale locks (>= 1440 * MAX_SCALE wide), and there the
+                // intro column — the track's first item — was being guillotined
+                // mid-glyph with a wide empty band beside it as soon as the cards
+                // scrolled. The padding adds the gutter straight back, so the
+                // intro keeps its exact on-screen position (and the track its
+                // maximum scrollLeft); only the clipping boundary moves out.
+                marginLeft: isMobile
+                  ? undefined
+                  : `calc((100vw / ${scale} - 1440px) / -2)`,
+                paddingLeft: isMobile
+                  ? undefined
+                  : `calc(38px + (100vw / ${scale} - 1440px) / 2)`,
               }}
             >
               {/* mr + the row's gap-2 (8px) = the 227.5px intro-to-cards gap.
