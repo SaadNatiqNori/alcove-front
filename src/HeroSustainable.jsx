@@ -39,14 +39,14 @@ function HeroSustainable() {
       // of the screen — the viewport edge is the only thing clipping it, so it
       // rises in from off-screen rather than out of a box.
       gsap.set(alcoveRef.current, { y: alcoveTravel })
+      // The card only nudges: a 10px fade-up from where it already sits, so it
+      // settles onto the wordmark instead of travelling with it.
+      gsap.set(cardRef.current, { y: 60, opacity: 0 })
       // Headline and description keep the original slide-fade.
       gsap.set([headlineRef.current, descriptionRef.current], {
         y: 80,
         opacity: 0,
       })
-      // The card doesn't travel — it belongs to the wordmark, so it simply
-      // appears on it once the wordmark has landed.
-      gsap.set(cardRef.current, { opacity: 0 })
 
       const { duration, ease } = HERO_INTRO
       gsap
@@ -58,8 +58,7 @@ function HeroSustainable() {
         // heavily, so it reads as one continuous rise, not separate pops.
         .to(headlineRef.current, { y: 0, opacity: 1, duration, ease }, 0.18)
         .to(descriptionRef.current, { y: 0, opacity: 1, duration, ease }, 0.36)
-        // Position `duration`: the frame the wordmark comes to rest.
-        .to(cardRef.current, { opacity: 1, duration: 0.8, ease }, duration)
+        .to(cardRef.current, { y: 0, opacity: 1, duration, ease }, 0.54)
     })
 
     return () => ctx.revert()
@@ -126,7 +125,7 @@ function HeroSustainable() {
               {hero.headline[1]}
             </h1>
 
-            <div className="w-[55%] self-end md:w-auto md:self-auto md:max-w-[200px] md:mr-[114px]">
+            <div className="w-[55%] self-end md:w-auto md:self-auto md:max-w-[233px] md:mr-[84px]">
               <p
                 ref={descriptionRef}
                 className="m-0 text-[15px] font-normal leading-[1.35] tracking-[0] text-[#1C2D4F] md:text-[14px] md:leading-4"
@@ -165,7 +164,7 @@ function HeroSustainable() {
               {...(featured.slug
                 ? { to: `/projects/${featured.slug}`, 'aria-label': `View project: ${featured.title}` }
                 : {})}
-              className="hidden md:flex absolute left-4 right-[52px] bottom-[calc(100%-16px)] max-md:[@media(max-height:700px)]:bottom-4 top-auto md:left-auto md:right-[9%] md:bottom-auto md:top-[-80px] w-auto md:w-[195px] flex-col gap-3 rounded-[4px] px-3 py-[17px] bg-[#13294B]/10 backdrop-blur-[50px] group transition-[backdrop-filter,background-color] duration-[600ms] ease-[cubic-bezier(0.22,1,0.36,1)] hover:bg-[#13294B]/20 hover:backdrop-blur-[100px]"
+              className="hidden md:flex absolute left-4 right-[52px] bottom-[calc(100%-16px)] max-md:[@media(max-height:700px)]:bottom-4 top-auto md:left-auto md:right-[6%] md:bottom-auto md:top-[-80px] w-auto md:w-[233px] flex-col gap-4 rounded-[4px] px-3 py-[17px] bg-[#13294B]/10 backdrop-blur-[50px] group transition-[backdrop-filter,background-color] duration-[600ms] ease-[cubic-bezier(0.22,1,0.36,1)] hover:bg-[#13294B]/20 hover:backdrop-blur-[100px]"
             >
               <div className="flex justify-between items-start relative -top-2">
                <div>
@@ -176,13 +175,13 @@ function HeroSustainable() {
                     <span className="relative top-[0.7px]">{featured.eyebrow}</span>
                   </p>
                   <h3
-                    className="m-0 text-[20px] font-[420] leading-[115%] tracking-[-0.02em] text-[#13294B]"
+                    className="m-0 text-[20px] md:text-[24px] font-[420] leading-[115%] tracking-[-0.02em] text-[#13294B]"
                     style={{ fontFamily: "'Season Mix-TRIAL', serif" }}
                   >
                     {featured.title}
                   </h3>
                </div>
-                <div className="w-4 h-4 relative top-1.5 gap-[5px] p-1 rounded-[35px] border-[0.5px] border-[#1C2D4F66] flex items-center justify-center shrink-0 transition-colors duration-500 ease-out group-hover:bg-[#1C2D4F] group-hover:border-[#1C2D4F]">
+                <div className="w-[19px] h-[19px] relative top-1.5 gap-[5px] p-1 rounded-[35px] border-[0.5px] border-[#1C2D4F66] flex items-center justify-center shrink-0 transition-colors duration-500 ease-out group-hover:bg-[#1C2D4F] group-hover:border-[#1C2D4F]">
                   <IoArrowForward className=" text-[#1C2D4F] transition-colors duration-500 ease-out group-hover:text-[#E2EAF2]" aria-hidden="true" />
                 </div>
               </div>
