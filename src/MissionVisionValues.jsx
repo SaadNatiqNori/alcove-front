@@ -4,8 +4,7 @@ import { ScrollTrigger } from 'gsap/ScrollTrigger'
 import { useContent } from './api'
 import ContactFooterPanel from './ContactFooterPanel'
 import { useScale, useIsDesktop, useIsTabletPortrait } from './useScale'
-import { REVEAL, prefersReducedMotion, revealFooterPanel } from './motion'
-import { cubicEase } from './easings'
+import { prefersReducedMotion, revealFooterPanel } from './motion'
 
 const CTA_FALLBACK = {
   title: "Let's talk",
@@ -177,17 +176,14 @@ function Card({ refProp, title, description, isValues, values, illustration, zIn
             is the only thing that fills that height back — and 230/150 also lands
             on the reference's roughly 30/70 text-to-image split. */}
         <div className="mt-6 grid grid-cols-1 tablet:grid-cols-[minmax(0,1fr)_230px] md:grid-cols-[460px_1fr] gap-[14px] tablet:gap-x-[18px] tablet:gap-y-[10px] md:gap-16 tablet:items-start">
-          {/* data-card-* mark the three reveal parts; the cover effect fades and
-              rises them in as the card comes into view (see revealCard). */}
           <h3
-            data-card-title
             className="m-0 text-[44px] tablet:text-[32px] md:text-[58px] font-normal leading-none tracking-[-0.01em] tablet:col-start-1 tablet:row-start-1"
             style={{ fontFamily: "'Season Mix-TRIAL', serif" }}
           >
             {title}
           </h3>
           <div className="tablet:contents">
-            <div data-card-body className="tablet:col-start-1 tablet:row-start-2">
+            <div className="tablet:col-start-1 tablet:row-start-2">
               {isValues ? (
                 <ValuesContent intro={values.intro} items={values.items} />
               ) : (
@@ -197,7 +193,6 @@ function Card({ refProp, title, description, isValues, values, illustration, zIn
               )}
             </div>
             <div
-              data-card-illustration
               className="mt-10 tablet:mt-0 flex justify-center md:justify-start tablet:justify-start tablet:col-start-2 tablet:row-start-1 tablet:row-span-2 tablet:self-start"
             >
               {illustration}
@@ -348,25 +343,13 @@ function MissionVisionValues() {
       // Footer (last layer) settles docked; the sticky stage releases at the
       // section end, so the footer holds full-screen as the page bottom.
 
-      // ── Layer content entrance ─────────────────────────────────────────────
-      // The house fade+rise from motion.js (REVEAL), same as the About and
-      // Contact pages: title and body together, then the illustration a moment
-      // behind them.
-      //
-      // Scroll-driven, not time-based. These layers can't use useRevealOnScroll —
-      // they sit stacked at inset-0 and are moved by the cover scrub, so
-      // ScrollTrigger can't read "this element is 80% up the viewport" off the
-      // layout. But a wall-clock tween is wrong here for a second reason: the
-      // cover is a pure function of scroll, and a card's whole turn is only ~one
-      // beat of scrolling, so a 1.2s entrance loses the race at any real
-      // scrolling speed — flick into the section and the card docks (or is
-      // covered again) while its text is still at opacity 0, a blank slab.
-      // Running the entrance off the same scroll axis as the cover ties it to
-      // the layer it belongs to: each part is fully in exactly when its layer
-      // docks, whatever the scroll speed.
+      // ── Footer panel entrance ──────────────────────────────────────────────
+      // The cards themselves carry no entrance: they are simply present on
+      // their layer, and the cover scrub above is the only motion. Only the
+      // navy footer animates its contents in.
       if (prefersReducedMotion()) return
 
-      const IN_VIEW_AT = 80 // matches REVEAL.start ('top 80%'), expressed as % of the viewport
+      const IN_VIEW_AT = 80 // matches the house reveal start ('top 80%'), as % of the viewport
       const beats = tl.duration()
 
       // Scroll offset of a beat on the cover timeline, as a ScrollTrigger
@@ -378,76 +361,12 @@ function MissionVisionValues() {
         return `top+=${(beat / beats) * range} top`
       }
 
-      // A layer comes into view one of two ways, so its window opens
-      // accordingly:
-      //   • While the section itself is still scrolling up into place, the whole
-      //     stage rides in. A layer parked at y0% of the stage is 80% up the
-      //     viewport when the section's top is (80 - y0)% down it — Mission
-      //     (y0 0) gets the plain 'top 80%', Vision (already peeking) a later
-      //     one.
-      //   • A layer that starts fully below the fold (Values, the footer) only
-      //     appears once the stage is pinned and the scrub lifts it, so its
-      //     window opens at the beat at which THIS timeline puts its top edge on
-      //     the mark.
-      const startFor = (y0, t0, t1) =>
-        y0 < IN_VIEW_AT
-          ? `top ${IN_VIEW_AT - y0}%`
-          : atBeat(t0 + (1 - IN_VIEW_AT / y0) * (t1 - t0))
-
-      // Each part takes 0.7 of its layer's entrance window, so the last one in
-      // (offset 0.3) still lands exactly as the layer docks.
-      const PART_SPAN = 0.7
-      const revealLayer = (parts, start, end) => {
-        const items = parts.filter(([el]) => el)
-        if (!items.length) return
-        const enter = gsap.timeline({ paused: true })
-        items.forEach(([el, at]) =>
-          enter.from(
-            el,
-            { opacity: 0, y: REVEAL.y, duration: PART_SPAN, ease: cubicEase },
-            at
-          )
-        )
-
-        // Ratcheted rather than scrubbed: the entrance follows the scroll on the
-        // way in, but the playhead only ever moves forward. A plain scrub is
-        // reversible, so coming back up from the footer would fade every card's
-        // content out again — an entrance should happen once, and content the
-        // reader has already arrived at should stay put.
-        let peak = 0
-        const advance = (self) => {
-          if (self.progress > peak) enter.progress((peak = self.progress))
-        }
-        ScrollTrigger.create({
-          trigger: sectionRef.current,
-          start,
-          end,
-          onUpdate: advance,
-          // onUpdate only runs while the scroll is inside the window. A flick can
-          // clear the whole window between two frames, and a reload can land past
-          // it outright, so leaving and refreshing have to advance it too — both
-          // report progress 1 from beyond the end.
-          onLeave: advance,
-          onRefresh: advance,
-        })
-      }
-
-      const cardParts = (cardEl) =>
-        cardEl
-          ? [
-              [cardEl.querySelector('[data-card-title]'), 0],
-              [cardEl.querySelector('[data-card-body]'), 0.1],
-              // The drawing trails its own title and body.
-              [cardEl.querySelector('[data-card-illustration]'), 0.3],
-            ]
-          : []
-
-      // Mission is docked from the section's first frame, Vision rides in
-      // already peeking and docks at beat 1, Values climbs in partway through
-      // its own rise and docks at beat 2.
-      revealLayer(cardParts(missionRef.current), startFor(0, 0, 1), atBeat(0))
-      revealLayer(cardParts(visionRef.current), startFor(100 - PEEK, 0, 1), atBeat(1))
-      revealLayer(cardParts(valuesRef.current), startFor(100, 2 - riseDur, 2), atBeat(2))
+      // The footer starts fully below the fold, so it only comes into view once
+      // the stage is pinned and the scrub lifts it: its window opens at the beat
+      // at which THIS timeline puts its top edge on the mark. A full-height
+      // layer rising 100→0 across t0→t1 crosses it partway through that rise.
+      const risesIntoViewAt = (t0, t1) =>
+        atBeat(t0 + (1 - IN_VIEW_AT / 100) * (t1 - t0))
 
       // The navy footer is not a card: it gets the shared ContactFooterPanel
       // entrance (revealFooterPanel), so the home page's footer animates exactly
@@ -456,7 +375,7 @@ function MissionVisionValues() {
       // Only the trigger differs: it is an absolutely-positioned layer the scrub
       // moves, so its own rect can't say where it is — it fires instead at the
       // scroll offset where THIS timeline puts its top edge on that same 80%
-      // line. Desktop's layer is as tall as the stage, so startFor covers it.
+      // line. Desktop's layer is as tall as the stage, so risesIntoViewAt covers it.
       // The mobile strip is not, so its top sits at (100 − h) + yPercent·h
       // percent of the stage; with yPercent running 100→0 across beat 2→3 that
       // crosses the line at beat 2 + (100 − IN_VIEW_AT)/h. Measured live, so a
@@ -473,7 +392,7 @@ function MissionVisionValues() {
           footerAlcoveRef.current,
         ],
         sectionRef.current,
-        isDesktop ? startFor(100, 3 - riseDur, 3) : stripStart
+        isDesktop ? risesIntoViewAt(3 - riseDur, 3) : stripStart
       )
     })
 
