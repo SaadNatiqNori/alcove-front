@@ -12,7 +12,7 @@ const HERO_FALLBACK = {
   headline: ['Shaping the Future', 'Of Sustainable Spaces'],
   description:
     'Innovative real estate developments designed with sustainability in mind, creating lasting value and vibrant communities across the Kurdistan Region.',
-  featured: { eyebrow: 'RECENT PROJECTS', title: 'Second Avenue', slug: 'second-avenue' },
+  featured: { eyebrow: 'FEATURED PROJECTS', title: 'Second Avenue', slug: 'second-avenue' },
 }
 
 function HeroSustainable() {
@@ -21,9 +21,9 @@ function HeroSustainable() {
   const home = useContent('home', { hero: HERO_FALLBACK })
   const hero = home.hero ?? HERO_FALLBACK
   // Per-field merge: the API omits featured fields when no project is
-  // flagged as recent, so missing ones fill in from the fallback.
+  // flagged for the hero card, so missing ones fill in from the fallback.
   const featured = { ...HERO_FALLBACK.featured, ...(hero.featured ?? {}) }
-  // The card deep-links to the recent project when the CMS provides a slug.
+  // The card deep-links to the featured project when the CMS provides a slug.
   const CardTag = featured.slug ? Link : 'div'
   const headlineRef = useRef(null)
   const descriptionRef = useRef(null)

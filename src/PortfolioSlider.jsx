@@ -659,9 +659,14 @@ function PortfolioSlider() {
                   </div>
 
                   <div className="flex justify-center">
-                    {project.coverImage ? (
+                    {/* The portfolio is one of the two big-illustration
+                        surfaces (the other is each project's own hero); the
+                        projects list, mobile menu and navbar dropdown all use
+                        the small one. `coverImage` is the fallback for a
+                        project that only has a small illustration uploaded. */}
+                    {project.illustrationBig || project.coverImage ? (
                       <img
-                        src={project.coverImage}
+                        src={project.illustrationBig || project.coverImage}
                         alt={project.title}
                         draggable={false}
                         ref={fitCardToImage}
