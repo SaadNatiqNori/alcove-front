@@ -5,8 +5,24 @@ import { IoArrowForward } from 'react-icons/io5'
 import logo from './assets/Logo.svg'
 import avenueViz from './assets/avenuesvg.svg'
 import { HERO_INTRO, offscreenBelow } from './motion'
-import { useScale, useIsDesktop } from './useScale'
+import { useScale, useIsDesktop, useIsTabletPortrait } from './useScale'
 import { useContent } from './api'
+
+// iPad Pro 11" portrait — the canvas the tablet hero is designed on. Unlike the
+// rest of the site (which zooms the 430px phone canvas on tablet, see
+// TABLET_REF), the hero has its own iPad design: a two-column layout with the
+// description and featured card stacked to the right of the headline. Every
+// `tablet:` value below is therefore a raw px measurement off that 834x1194
+// artboard, and the section zooms it to whichever iPad it is on.
+//
+// One caveat throughout: the artboard's text frames are cap-height trimmed, so
+// its numbers are cap-to-cap distances, while CSS measures line boxes (which
+// include the half-leading, the ascender above the caps and the descender below
+// them). Every `tablet:` gap that meets text is therefore the design value minus
+// that trim, measured from the live font — e.g. the card's 16px label→title gap
+// is 9.42px of CSS gap. The comments below carry the arithmetic; do not "tidy"
+// them back to the round Figma numbers or the spacing grows by 4-7px a seam.
+const TABLET_HERO_REF = 834
 
 const HERO_FALLBACK = {
   headline: ['Shaping the Future', 'Of Sustainable Spaces'],
@@ -16,8 +32,9 @@ const HERO_FALLBACK = {
 }
 
 function HeroSustainable() {
-  const scale = useScale(1440, 430)
+  const scale = useScale(1440, 430, TABLET_HERO_REF)
   const isDesktop = useIsDesktop()
+  const isTabletPortrait = useIsTabletPortrait()
   const home = useContent('home', { hero: HERO_FALLBACK })
   const hero = home.hero ?? HERO_FALLBACK
   // Per-field merge: the API omits featured fields when no project is
@@ -64,6 +81,56 @@ function HeroSustainable() {
     return () => ctx.revert()
   }, [])
 
+  // The featured card is the one element the tablet design MOVES: on phones and
+  // desktop it floats over the wordmark (absolute, positioned against the
+  // wordmark box), while on iPad it sits in flow under the description as the
+  // bottom of the right-hand column. That is a different parent, not a different
+  // set of offsets, so the two live at two call sites below — only the root
+  // className differs, and whichever one renders owns `cardRef`.
+  const featuredCard = (rootClassName) => (
+    <CardTag
+      ref={cardRef}
+      {...(featured.slug
+        ? { to: `/projects/${featured.slug}`, 'aria-label': `View project: ${featured.title}` }
+        : {})}
+      className={rootClassName}
+    >
+      <div className="flex justify-between items-start relative -top-2 tablet:top-0">
+        {/* gap: the design's 16px label→title cap gap, less the 1.3px the label's
+            line box hangs below its caps (2px, pulled back by the 0.7px optical
+            nudge on the label span) and the 4.58px the 20px/115% title's line box
+            adds above its own. */}
+        <div className="tablet:flex tablet:flex-col tablet:gap-[10.12px]">
+          <p className="m-0 inline-flex items-center gap-[6px] font-['Akkurat_Mono',monospace] text-[8px] tablet:text-[10px] font-medium uppercase leading-none tracking-normal text-[#13294B]">
+            <span className="inline-block w-[6px] h-[6px] tablet:w-[6.8px] tablet:h-[6.8px] rounded-full bg-[#13294B]" />
+            {/* Akkurat Mono's cap ink sits ~0.7px above the line-box center at 8px/100%;
+                nudge the label down so it optically centers with the dot. */}
+            <span className="relative top-[0.7px]">{featured.eyebrow}</span>
+          </p>
+          <h3
+            className="m-0 text-[20px] md:text-[24px] font-[420] leading-[115%] tracking-[-0.02em] text-[#13294B]"
+            style={{ fontFamily: "'Season Mix-TRIAL', serif" }}
+          >
+            {featured.title}
+          </h3>
+        </div>
+        <div className="w-[19px] h-[19px] tablet:w-[18.13px] tablet:h-[18.13px] relative top-1.5 tablet:top-0 gap-[5px] tablet:gap-[5.66px] p-1 tablet:p-[4.53px] rounded-[35px] tablet:rounded-[39.65px] border-[0.5px] tablet:border-[0.57px] border-[#1C2D4F66] flex items-center justify-center shrink-0 transition-colors duration-500 ease-out group-hover:bg-[#1C2D4F] group-hover:border-[#1C2D4F]">
+          <IoArrowForward
+            className="tablet:text-[9.06px] text-[#1C2D4F] transition-colors duration-500 ease-out group-hover:text-[#E2EAF2]"
+            aria-hidden="true"
+          />
+        </div>
+      </div>
+
+      <img
+        src={featured.image || avenueViz}
+        alt=""
+        aria-hidden="true"
+        className="w-full h-auto"
+      />
+    </CardTag>
+  )
+
   return (
     <section
       className="relative w-full h-screen overflow-hidden bg-[#E2EAF2]"
@@ -77,8 +144,10 @@ function HeroSustainable() {
           width: isDesktop && scale >= 1 ? '100%' : `${100 / scale}%`,
           marginLeft: isDesktop && scale >= 1 ? '0' : `${(100 - 100 / scale) / 2}%`,
           height: `${100 / scale}vh`,
-          // Exposed so the mobile top padding can measure the CANVAS height
-          // rather than the raw viewport — see the padding rule on <main>.
+          // Exposed for consistency with the other scaled sections, which use it
+          // to convert viewport units into canvas px. Nothing in this section
+          // reads it any more: both the phone and the iPad top padding are flat
+          // canvas px (see the padding rules on <main>).
           '--scale': scale,
         }}
       >
@@ -91,30 +160,32 @@ function HeroSustainable() {
           // view is untouched) but shrinks on shorter viewports (e.g. iPhone SE,
           // 667px) so the top nav-clearance yields space instead of collapsing
           // the description→wordmark gap. Pairs with the width scale-lock above.
-          // The vh term is divided by --scale because everything here is authored
-          // in canvas px: a raw vh measures the physical viewport, so on a zoomed
-          // canvas (iPad portrait, ~619 canvas px tall inside an 1180px screen)
-          // the rule thought it had 1180px of room, never yielded, and pushed the
-          // wordmark off the bottom. /var(--scale) converts vh into canvas px.
           // The 40px bottom pad is the shared mobile wordmark gap — it is canvas
           // px, so it renders as 40 × width/430, matching the footer's
           // min(40px, 9.3023vw) (see ContactFooterPanel). Flat, not vh-clamped:
           // the top padding is the one that yields space on short screens.
-          className="relative h-full max-w-[1440px] mx-auto flex flex-col bg-[#E2EAF2] px-4 max-md:pb-[40px] max-md:[padding-top:min(196px,21.031vh)] tablet:[padding-top:min(196px,calc(21.031vh_/_var(--scale,1)))] text-[#1C2D4F] md:px-[38px] md:pb-[40px] md:pt-[200.69px]"
+          // tablet: flat canvas px off the 834x1194 artboard — 39.83px gutters,
+          // and 238.88px of top pad, which is the design's 255.14px cap line less
+          // the 16.26px the 77px headline's line box adds above its caps. Flat
+          // rather than vh-clamped because the iPad canvas heights only span
+          // 1112-1200px and the headline→description gap (which grows with the
+          // canvas, see below) absorbs the whole spread on its own.
+          className="relative h-full max-w-[1440px] mx-auto flex flex-col bg-[#E2EAF2] px-4 tablet:px-[39.83px] max-md:pb-[40px] tablet:pb-[41.4px] max-md:[padding-top:min(196px,21.031vh)] tablet:[padding-top:238.88px] text-[#1C2D4F] md:px-[38px] md:pb-[40px] md:pt-[200.69px]"
         >
-          {/* tablet: iPad portrait's canvas is proportionally shorter than any
-              phone's (573-619 canvas px vs 665-930), so the phone stack
-              overflows by ~72px. The headline→description gap and the wordmark
-              below give that back; phones and desktop keep their values. */}
-          <div className="flex flex-col md:flex-row md:justify-between md:items-start gap-[60px] tablet:gap-[30px] md:gap-8">
+          {/* tablet: this column takes all the leftover height (`flex-1`) and the
+              description block inside it is pushed to the bottom with `mt-auto`,
+              so the ONE dynamic gap in the tablet hero is headline→description:
+              170px on the 1194px design canvas, ~88px on the shorter iPad mini /
+              12.9" canvases. Everything from the description down is fixed and
+              anchored to the wordmark at the bottom edge. */}
+          <div className="flex flex-col md:flex-row md:justify-between md:items-start gap-[60px] tablet:gap-0 tablet:flex-1 md:gap-8">
             <h1
               ref={headlineRef}
-              // tablet: the headline is the largest single block in the hero
-              // (233 of the mini's 573 canvas px). iPad portrait's canvas is
-              // proportionally shorter than any phone's, so trimming it here
-              // buys back the room instead of squeezing the wordmark into the
-              // description. Phones and desktop keep their sizes.
-              className="m-0 text-[56px] tablet:text-[44px] not-italic leading-[104%] tracking-[-0.02em] md:text-[48px] md:leading-[115%]"
+              // tablet: 77px/115% in a 618px box, which is exactly wide enough
+              // to keep "Shaping the Future" on one line and wrap the rest into
+              // "Of Sustainable" / "Spaces" — the design's three-line stack, from
+              // the same unsplit CMS string the phone layout wraps naturally.
+              className="m-0 text-[56px] tablet:text-[77px] tablet:w-[618px] not-italic leading-[104%] tablet:leading-[115%] tracking-[-0.02em] md:text-[48px] md:leading-[115%]"
               style={{ fontFamily: "'Season Mix VF', serif", fontWeight: 420 }}
             >
               {hero.headline[0]}
@@ -125,14 +196,36 @@ function HeroSustainable() {
               {hero.headline[1]}
             </h1>
 
-            <div className="w-[55%] self-end md:w-auto md:self-auto md:max-w-[233px] md:mr-[84px]">
+            {/* tablet: the right-hand column is the card's width (257.19px) held
+                15.98px off the gutter so its right edge lands on the design's
+                778.19px and its left on 521px; the description is the narrower
+                207.55px block inside it. 16px/125%: the artboard reports the type
+                as 16px/100%, but 100% would be 16px of leading, which stacks the
+                six lines 96px tall — the artboard's own block is 112px, and 20px
+                of leading is what puts it there. */}
+            <div className="w-[55%] self-end tablet:w-[257.19px] tablet:mr-[15.98px] tablet:mt-auto md:w-auto md:self-auto md:max-w-[233px] md:mr-[84px]">
               <p
                 ref={descriptionRef}
-                className="m-0 text-[15px] font-normal leading-[1.35] tracking-[0] text-[#1C2D4F] md:text-[14px] md:leading-4"
+                className="m-0 text-[15px] tablet:text-[16px] tablet:w-[207.55px] font-normal leading-[1.35] tablet:leading-[125%] tracking-[0] text-[#1C2D4F] md:text-[14px] md:leading-4"
                 style={{ fontFamily: "'Season Sans-TRIAL', sans-serif" }}
               >
                 {hero.description}
               </p>
+
+              {/* relative z-10: the card overlaps the wordmark, and the wordmark's
+                  wrapper is `relative`, so a static card here would be painted
+                  UNDER the letters — the "OVE" drew over it. The wrapper has no
+                  z-index of its own, so z-10 is enough to sit the card on top.
+                  mt: the design's 100px description→card gap, less the 4px the
+                  16px/20px description's last line box hangs below its baseline.
+                  gap: the 27.19px card-title→illustration gap, less the 4px that
+                  title's line box hangs below ITS baseline. pt/pb are the single
+                  19.26px padding, the top one less the 1.6px the label row keeps
+                  above its dot and cap line. */}
+              {isTabletPortrait &&
+                featuredCard(
+                  'relative z-10 flex mt-[96px] w-[257.19px] flex-col gap-[23.19px] rounded-[4.53px] px-[13.6px] pt-[17.66px] pb-[19.26px] bg-[#13294B]/10 backdrop-blur-[50px] group transition-[backdrop-filter,background-color] duration-[600ms] ease-[cubic-bezier(0.22,1,0.36,1)] hover:bg-[#13294B]/20 hover:backdrop-blur-[100px]'
+                )}
             </div>
           </div>
 
@@ -140,10 +233,17 @@ function HeroSustainable() {
               pb); the auto top margin absorbs viewport slack, so the desc→logo
               gap is 71px at the design's reference height and grows on taller
               screens rather than leaving dead space under the wordmark. */}
-          <div className="relative mt-auto">
+          {/* tablet: the column above already ate the free height, so `mt-auto`
+              resolves to 0 and the negative margin pulls the wordmark up under
+              the card by the design's 28.79px — the overlap that lets the card
+              sit over the top of "OVE". Any extra card height (CSS has no
+              cap-height trim, so it runs a little taller than the artboard) is
+              spent upward into the dynamic gap, leaving this overlap and the
+              wordmark's bottom edge fixed. */}
+          <div className="relative mt-auto tablet:mt-[-28.79px]">
             <div
               ref={alcoveRef}
-              className="w-full aspect-[64/13] max-md:aspect-auto max-md:h-[110px] tablet:h-[86px]"
+              className="w-full aspect-[64/13] max-md:aspect-auto max-md:h-[110px] tablet:h-[153.84px]"
               style={{
                 WebkitMaskImage: `url("${logo}")`,
                 maskImage: `url("${logo}")`,
@@ -159,42 +259,10 @@ function HeroSustainable() {
               aria-label="Alcove"
             />
 
-            <CardTag
-              ref={cardRef}
-              {...(featured.slug
-                ? { to: `/projects/${featured.slug}`, 'aria-label': `View project: ${featured.title}` }
-                : {})}
-              className="hidden md:flex absolute left-4 right-[52px] bottom-[calc(100%-16px)] max-md:[@media(max-height:700px)]:bottom-4 top-auto md:left-auto md:right-[6%] md:bottom-auto md:top-[-80px] w-auto md:w-[233px] flex-col gap-4 rounded-[4px] px-3 py-[17px] bg-[#13294B]/10 backdrop-blur-[50px] group transition-[backdrop-filter,background-color] duration-[600ms] ease-[cubic-bezier(0.22,1,0.36,1)] hover:bg-[#13294B]/20 hover:backdrop-blur-[100px]"
-            >
-              <div className="flex justify-between items-start relative -top-2">
-               <div>
-                  <p className="m-0 inline-flex items-center gap-[6px] font-['Akkurat_Mono',monospace] text-[8px] font-medium uppercase leading-none tracking-normal text-[#13294B]">
-                    <span className="inline-block w-[6px] h-[6px] rounded-full bg-[#13294B]" />
-                    {/* Akkurat Mono's cap ink sits ~0.7px above the line-box center at 8px/100%;
-                        nudge the label down so it optically centers with the dot. */}
-                    <span className="relative top-[0.7px]">{featured.eyebrow}</span>
-                  </p>
-                  <h3
-                    className="m-0 text-[20px] md:text-[24px] font-[420] leading-[115%] tracking-[-0.02em] text-[#13294B]"
-                    style={{ fontFamily: "'Season Mix-TRIAL', serif" }}
-                  >
-                    {featured.title}
-                  </h3>
-               </div>
-                <div className="w-[19px] h-[19px] relative top-1.5 gap-[5px] p-1 rounded-[35px] border-[0.5px] border-[#1C2D4F66] flex items-center justify-center shrink-0 transition-colors duration-500 ease-out group-hover:bg-[#1C2D4F] group-hover:border-[#1C2D4F]">
-                  <IoArrowForward className=" text-[#1C2D4F] transition-colors duration-500 ease-out group-hover:text-[#E2EAF2]" aria-hidden="true" />
-                </div>
-              </div>
-
-             
-
-              <img
-                src={featured.image || avenueViz}
-                alt=""
-                aria-hidden="true"
-                className="w-full h-auto"
-              />
-            </CardTag>
+            {!isTabletPortrait &&
+              featuredCard(
+                'hidden md:flex absolute left-4 right-[52px] bottom-[calc(100%-16px)] max-md:[@media(max-height:700px)]:bottom-4 top-auto md:left-auto md:right-[6%] md:bottom-auto md:top-[-80px] w-auto md:w-[233px] flex-col gap-4 rounded-[4px] px-3 py-[17px] bg-[#13294B]/10 backdrop-blur-[50px] group transition-[backdrop-filter,background-color] duration-[600ms] ease-[cubic-bezier(0.22,1,0.36,1)] hover:bg-[#13294B]/20 hover:backdrop-blur-[100px]'
+              )}
           </div>
         </main>
       </div>

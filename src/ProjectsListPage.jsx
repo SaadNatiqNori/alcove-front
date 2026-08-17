@@ -9,9 +9,17 @@ import { useProjects } from './api'
 import { PROJECTS_DATA } from './projects'
 import { ProjectIllustration } from './PortfolioSlider'
 import { useLenis } from './SmoothScroll'
-import { DESKTOP_MIN } from './breakpoints'
+import { useScale, useIsDesktop } from './useScale'
 
 const CARD_WIDTH = 520
+
+// This page is the one section with a real tablet design instead of the zoomed
+// phone one, so iPad portrait scales against the width it was drawn at (iPad
+// Pro 11") rather than the shared TABLET_REF canvas. Every `tablet:` utility
+// below is therefore authored in THIS canvas's px — 40px really is 40px on an
+// 834-wide iPad — unlike the sub-pixel `tablet:` values elsewhere, which are
+// 430px-canvas units. See useScale's tabletReferenceWidth note.
+const TABLET_CANVAS = 834
 
 // Scroll position (px from the viewport top) the opened mobile card's top border
 // is lifted to — clears the fixed navbar (~71px) with a small gap.
@@ -58,32 +66,41 @@ const ProjectCardBody = forwardRef(function ProjectCardBody(
   return (
     <div
       ref={ref}
-      className={`rounded-[5px] border border-[#FFFFFF12] bg-navy p-9 text-mist will-change-transform ${className}`}
+      className={`rounded-[5px] tablet:rounded-[4px] border border-[#FFFFFF12] bg-navy p-9 tablet:p-[40px] text-mist will-change-transform ${className}`}
     >
-      <h2
-        className="m-0 text-[26px] md:text-[28px] font-[420] leading-[1.1] tracking-[-0.02em] text-mist"
-        style={{ fontFamily: "'Season Mix-TRIAL', serif" }}
-      >
-        {project.title}
-      </h2>
-      {meta && (
-        <p className="mt-2 font-['Akkurat_Mono',monospace] text-[10px] font-medium uppercase tracking-[0.12em] text-[#A8B0BD]">
-          {meta}
+      {/* Stacked everywhere except tablet, where the description sits in a fixed
+          454.79px column flush with the card's right padding and the title keeps
+          the ~220px left over. */}
+      <div className="tablet:flex tablet:items-start tablet:justify-between">
+        <div className="tablet:min-w-0 tablet:pr-4">
+          <h2
+            className="m-0 text-[26px] md:text-[28px] tablet:text-[24px] font-[420] leading-[1.1] tablet:leading-[1.15] tracking-[-0.02em] text-mist"
+            style={{ fontFamily: "'Season Mix-TRIAL', serif" }}
+          >
+            {project.title}
+          </h2>
+          {/* The tablet card is exactly title + description + illustration; the
+              meta line would push its 419.74px height out. */}
+          {meta && (
+            <p className="mt-2 tablet:hidden font-['Akkurat_Mono',monospace] text-[10px] font-medium uppercase tracking-[0.12em] text-[#A8B0BD]">
+              {meta}
+            </p>
+          )}
+        </div>
+        <p className="mt-[10px] tablet:mt-0 max-w-[420px] tablet:max-w-none tablet:w-[454.79px] tablet:shrink-0 text-[14px] leading-[1.55] tablet:leading-[1.15] tracking-[0] text-white">
+          {project.description}
         </p>
-      )}
-      <p className="mt-[10px] max-w-[420px] text-[14px] leading-[1.55] tracking-[0] text-white">
-        {project.description}
-      </p>
-      <div className="mt-8 flex justify-center">
+      </div>
+      <div className="mt-8 tablet:mt-[72px] flex justify-center">
         {project.coverImage ? (
           <img
             src={project.coverImage}
             alt=""
             aria-hidden="true"
-            className="w-[80%] h-auto opacity-90"
+            className="w-[100%] tablet:w-full tablet:h-[206px] h-auto opacity-90"
           />
         ) : (
-          <ProjectIllustration variant={variant} />
+          <ProjectIllustration variant={variant} className="tablet:max-w-none" />
         )}
       </div>
     </div>
@@ -107,12 +124,13 @@ function ProjectsListPage() {
   const [active, setActive] = useState(null) // hovered row index (desktop)
   const [display, setDisplay] = useState(0) // last shown project (kept during fade-out)
 
-  // Mobile viewport → tap-to-expand accordion instead of the hover follower.
-  const [isMobile, setIsMobile] = useState(() =>
-    typeof window !== 'undefined'
-      ? window.matchMedia(`(max-width: ${DESKTOP_MIN - 1}px)`).matches
-      : false
-  )
+  // Anything but the desktop layout — phones AND iPad portrait — gets the
+  // tap-to-expand accordion instead of the hover follower. Derived from the
+  // layout predicate rather than a bare max-width so it cannot disagree with the
+  // CSS: a touch device has no hover to drive the follower with anyway.
+  const isDesktop = useIsDesktop()
+  const isMobile = !isDesktop
+  const scale = useScale(1440, null, TABLET_CANVAS)
   const [openIndex, setOpenIndex] = useState(null) // expanded row (mobile); null = all collapsed
   const prevOpenRef = useRef(null)
 
@@ -131,15 +149,7 @@ function ProjectsListPage() {
   // miss the fade-in.
   const slugKey = projects.map((p) => p.slug).join('|')
 
-  // Track the mobile breakpoint; collapse any open card when leaving mobile.
-  useEffect(() => {
-    const mq = window.matchMedia(`(max-width: ${DESKTOP_MIN - 1}px)`)
-    const onChange = (e) => setIsMobile(e.matches)
-    setIsMobile(mq.matches)
-    mq.addEventListener('change', onChange)
-    return () => mq.removeEventListener('change', onChange)
-  }, [])
-
+  // Collapse any open card when the desktop layout takes over.
   useEffect(() => {
     if (!isMobile) setOpenIndex(null)
   }, [isMobile])
@@ -332,18 +342,18 @@ function ProjectsListPage() {
           card below is intentionally left OUTSIDE this wrapper: it is
           position: fixed and driven by real-viewport pointer coords, which a
           transform ancestor would break. */}
-      <ScaleLock as="div" className="px-[16px] md:px-12 pb-24">
-      <div className="mx-auto pt-[150px] md:pt-[190px]">
+      <ScaleLock as="div" scale={scale} className="px-[16px] tablet:px-[39.3px] md:px-12 pb-24">
+      <div className="mx-auto pt-[150px] tablet:pt-[186px] md:pt-[190px]">
         {/* Heading */}
         <div ref={headingRef} className="md:pl-[13%]">
           <p
-            className="m-0 text-[19px] md:text-[32px] font-[420] leading-[1] tracking-[-0.04em] text-[#7E8798]"
+            className="m-0 text-[19px] tablet:text-[26px] md:text-[32px] font-[420] leading-[1] tracking-[-0.04em] text-[#7E8798]"
             style={{ fontFamily: "'Season Mix-TRIAL', serif" }}
           >
             Our Projects
           </p>
           <h1
-            className="mt-[19px] md:mt-6 max-w-[860px] text-[27px] md:text-[46px] font-[420] leading-[1.15] tracking-[-0.02em] text-[#1B2436]"
+            className="mt-[19px] tablet:mt-[22px] md:mt-6 max-w-[860px] tablet:max-w-[754px] text-[27px] tablet:text-[38px] md:text-[46px] font-[420] leading-[1.15] tracking-[-0.02em] text-[#1B2436]"
             style={{ fontFamily: "'Season Mix-TRIAL', serif" }}
           >
             Building the Future of Urban Living Developments crafted to elevate
@@ -359,7 +369,7 @@ function ProjectsListPage() {
           }}
           onMouseMove={isMobile ? undefined : handleMove}
           onMouseLeave={isMobile ? undefined : () => setActive(null)}
-          className="mt-[80px] md:mt-[110px] list-none p-0 m-0"
+          className="mt-[80px] tablet:mt-[100px] md:mt-[110px] list-none p-0 m-0"
         >
           {projects.map((p, i) => {
             const sel = isMobile ? openIndex : active
@@ -401,10 +411,10 @@ function ProjectsListPage() {
                     >
                       <div
                         ref={(el) => (titleRefs.current[i] = el)}
-                        className="flex items-center justify-between gap-6 py-[36px]"
+                        className="flex items-center justify-between gap-6 py-[36px] tablet:py-[24px]"
                       >
                         <span
-                          className={`block text-[26px] font-[420] leading-[1] tracking-[-0.04em] transition-colors duration-[450ms] ease-out ${
+                          className={`block text-[26px] tablet:text-[24px] font-[420] leading-[1] tracking-[-0.04em] transition-colors duration-[450ms] ease-out ${
                             dim ? 'text-[#AAB2C0]' : 'text-[#1B2436]'
                           }`}
                           style={{ fontFamily: "'Season Mix-TRIAL', serif" }}
@@ -424,7 +434,7 @@ function ProjectsListPage() {
                       className="overflow-hidden"
                       style={{ height: 0 }}
                     >
-                      <div className="pt-[26px] pb-[26px]">
+                      <div className="pt-[26px] pb-[26px] tablet:pt-[29px] tablet:pb-[29px]">
                         <ProjectCardBody
                           ref={(el) => (cardBodyRefs.current[i] = el)}
                           project={p}

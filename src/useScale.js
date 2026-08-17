@@ -8,12 +8,12 @@ export const MAX_SCALE = 1.3
 
 // Three regimes, checked in this order:
 //
-//   tablet portrait  scale = width / TABLET_REF. The mobile layout lays out on a
-//                    locked 560px canvas and zooms to fill the width, so an iPad
-//                    gets the phone design's proportions rather than the same
-//                    layout stretched thin. Checked FIRST because these
-//                    viewports are all >= 768 and would otherwise be read as
-//                    desktop.
+//   tablet portrait  scale = width / tabletReferenceWidth (TABLET_REF by
+//                    default). The mobile layout lays out on that locked canvas
+//                    and zooms to fill the width, so an iPad gets the phone
+//                    design's proportions rather than the same layout stretched
+//                    thin. Checked FIRST because these viewports are all >= 768
+//                    and would otherwise be read as desktop.
 //   desktop          scale = width / referenceWidth, capped at MAX_SCALE.
 //                    Unchanged, DPR guard included.
 //   mobile           width / mobileReferenceWidth capped at 1, or a flat 1 for
@@ -22,10 +22,10 @@ export const MAX_SCALE = 1.3
 // The DPR ratio keeps browser zoom from being double-counted at the desktop
 // threshold: window.innerWidth already shrinks under zoom, so comparing the
 // raw value against 768 would flip a zoomed-in desktop into the mobile branch.
-function computeScale(referenceWidth, mobileReferenceWidth, initialDPR) {
+function computeScale(referenceWidth, mobileReferenceWidth, initialDPR, tabletReferenceWidth) {
   const width = window.innerWidth
 
-  if (window.matchMedia(TABLET_PORTRAIT_QUERY).matches) return width / TABLET_REF
+  if (window.matchMedia(TABLET_PORTRAIT_QUERY).matches) return width / tabletReferenceWidth
 
   const currentDPR = window.devicePixelRatio || 1
   const virtualWidth = width * (currentDPR / initialDPR)
@@ -38,18 +38,36 @@ function computeScale(referenceWidth, mobileReferenceWidth, initialDPR) {
 // instead of reflowing. `mobileReferenceWidth` opts a section into the scaled
 // mobile canvas (430 = iPhone 14 Pro Max); omit it to keep a flat scale of 1
 // below the desktop breakpoint.
-export function useScale(referenceWidth = 1440, mobileReferenceWidth = null) {
+//
+// `tabletReferenceWidth` overrides the canvas iPad portrait zooms against. Pass
+// it ONLY for a section that has its own tablet design rather than the zoomed
+// phone one — its `tablet:` utilities are then authored in that canvas's px, not
+// TABLET_REF's. Every other section must leave it alone so they keep sharing one
+// canvas (see TABLET_REF in breakpoints.js for why that matters).
+export function useScale(
+  referenceWidth = 1440,
+  mobileReferenceWidth = null,
+  tabletReferenceWidth = TABLET_REF
+) {
   const [state, setState] = useState(() => {
     if (typeof window === 'undefined') return { scale: 1, initialDPR: 1 }
     const dpr = window.devicePixelRatio || 1
-    return { scale: computeScale(referenceWidth, mobileReferenceWidth, dpr), initialDPR: dpr }
+    return {
+      scale: computeScale(referenceWidth, mobileReferenceWidth, dpr, tabletReferenceWidth),
+      initialDPR: dpr,
+    }
   })
 
   useEffect(() => {
     const recompute = () =>
       setState((prev) => ({
         ...prev,
-        scale: computeScale(referenceWidth, mobileReferenceWidth, prev.initialDPR),
+        scale: computeScale(
+          referenceWidth,
+          mobileReferenceWidth,
+          prev.initialDPR,
+          tabletReferenceWidth
+        ),
       }))
     // The media-query listener is not redundant with `resize`: it guarantees a
     // recompute the moment the regime flips, without depending on resize
@@ -61,7 +79,7 @@ export function useScale(referenceWidth = 1440, mobileReferenceWidth = null) {
       window.removeEventListener('resize', recompute)
       mq.removeEventListener('change', recompute)
     }
-  }, [referenceWidth, mobileReferenceWidth])
+  }, [referenceWidth, mobileReferenceWidth, tabletReferenceWidth])
 
   return state.scale
 }

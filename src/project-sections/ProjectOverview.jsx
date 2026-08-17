@@ -38,12 +38,13 @@ function ProjectOverview({ eyebrow = 'Project Overview', heading, body, image })
       // with 16px side padding — content flows from the top (74px in, 106px
       // below). Desktop keeps the one-viewport full-height layout, so replicate
       // ScaleLock's viewport="full" via the scaled-vh height class here. iPad
-      // takes the mobile block, just taller.
+      // takes the mobile block but borrows desktop's side-by-side logo/paragraph
+      // row, and is content-height so nothing sits under the paragraph.
       bg="bg-[#161A24]"
-      className="text-mist px-4 tablet:px-[38px] md:px-[38px] min-h-[626px] tablet:min-h-[780px] md:min-h-0 md:h-[calc(100vh/var(--scale))]"
+      className="text-mist px-4 tablet:px-[38px] md:px-[38px] min-h-[626px] tablet:min-h-0 md:min-h-0 md:h-[calc(100vh/var(--scale))]"
       style={{ fontFamily: "'Season Sans-TRIAL', sans-serif" }}
     >
-      <div className="mx-auto flex flex-col pt-[74px] pb-[106px] tablet:pt-[92px] tablet:pb-[132px] md:h-full md:justify-center md:py-[69px] md:pt-0 md:pb-0">
+      <div className="mx-auto flex flex-col pt-[74px] pb-[106px] tablet:pt-[120px] tablet:pb-[120px] md:h-full md:justify-center md:py-[69px] md:pt-0 md:pb-0">
         <div className="mb-[50px] tablet:mb-[64px] md:mb-[69px]">
           <p
             data-ov-item
@@ -63,7 +64,7 @@ function ProjectOverview({ eyebrow = 'Project Overview', heading, body, image })
         <div>
           <div className="h-px w-full bg-white/20" />
 
-          <div className="mt-[41px] tablet:mt-[52px] md:mt-[69px] grid grid-cols-1 items-start gap-10 tablet:gap-10 md:grid-cols-2 md:gap-16">
+          <div className="mt-[41px] tablet:mt-[52px] md:mt-[69px] grid grid-cols-1 items-start gap-10 tablet:grid-cols-[auto_1fr] tablet:gap-x-[52px] tablet:gap-y-0 md:grid-cols-2 md:gap-16">
             <div data-ov-item>
               <img
                 src={image || logoYellow}
@@ -76,7 +77,7 @@ function ProjectOverview({ eyebrow = 'Project Overview', heading, body, image })
             {body && (
               <p
                 data-ov-item
-                className="m-0 max-w-[430px] tablet:max-w-[560px] text-[16px] tablet:text-[19px] md:text-[18px] font-normal leading-5 tablet:leading-6 md:leading-6 tracking-[-0.04em] text-white md:justify-self-end"
+                className="m-0 max-w-[430px] tablet:max-w-none text-[16px] tablet:text-[19px] md:text-[18px] font-normal leading-5 tablet:leading-6 md:leading-6 tracking-[-0.04em] text-white md:justify-self-end"
               >
                 {body}
               </p>

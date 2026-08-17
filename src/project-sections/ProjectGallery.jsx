@@ -5,7 +5,7 @@ import { IoArrowBack, IoArrowForward } from 'react-icons/io5'
 import { cubicEase } from '../easings'
 import { prefersReducedMotion } from './motion'
 import { ScaleLock } from '../ScaleLock'
-import { useIsDesktop } from '../useScale'
+import { useIsDesktop, useIsTabletPortrait } from '../useScale'
 
 gsap.registerPlugin(ScrollTrigger)
 
@@ -13,9 +13,11 @@ const GAP = 20 // px between slides — kept in sync with --gap below
 
 // Section type: "gallery"
 // Dark, full-bleed centered carousel: the first slide sits centred and its
-// neighbours peek on either side. Free horizontal scroll — mouse drag (with
-// inertia), trackpad/wheel swipe, and touch pan-x — matching the home
-// portfolio slider. The prev/next buttons scroll the native track by one slide.
+// neighbours peek on either side. Every photo shares one height per breakpoint
+// and is as wide as its own aspect ratio makes it, so slide widths vary and
+// nothing is cropped. Free horizontal scroll — mouse drag (with inertia),
+// trackpad/wheel swipe, and touch pan-x — matching the home portfolio slider.
+// The prev/next buttons centre the neighbouring slide.
 // `images: [{ src, alt }]` is a CMS-shaped list. Owns its own scroll reveal.
 function ProjectGallery({
   eyebrow = 'Gallery',
@@ -26,14 +28,13 @@ function ProjectGallery({
   const scrollRef = useRef(null)
   const [atStart, setAtStart] = useState(true)
   const [atEnd, setAtEnd] = useState(images.length <= 1)
-  // Mobile uses a near-full-width card (16px gutters) instead of the centred
-  // 64vw peek-carousel, so the slide width differs by breakpoint. DESKTOP_QUERY,
-  // not a bare min-width:768 check — the latter matched iPads and gave them the
-  // centred peek-carousel while the rest of the section rendered mobile values.
+  // The track is the same everywhere — a centred slide with its neighbours
+  // peeking. Only the gap differs: 16px on phones, where the wider GAP would eat
+  // into a screen that has little room to spare. DESKTOP_QUERY, not a bare
+  // min-width:768 check — the latter matches iPads, which run the mobile layout.
   const isDesktop = useIsDesktop()
-  // Inter-slide gap: 16px on mobile (matches the 16px left gutter and lets the
-  // next card peek), the wider GAP on desktop.
-  const gap = isDesktop ? GAP : 16
+  const isTablet = useIsTabletPortrait()
+  const gap = isDesktop || isTablet ? GAP : 16
 
   useLayoutEffect(() => {
     if (prefersReducedMotion()) return
@@ -157,14 +158,56 @@ function ProjectGallery({
     }
   }, [images.length])
 
-  // Prev/next scroll the native track by one slide (width + gap, in the
-  // element's own unscaled pixels — offsetWidth is layout px, not transformed).
+  // Slides are as wide as their photo (see the image height note below), so
+  // there is no single width for a CSS `(100% - width) / 2` to centre against —
+  // the end padding is measured instead. Half the leftover space beside the
+  // first slide centres it at rest; the same for the last slide centres it at
+  // the end of the scroll. A photo's width is unknown until it decodes, so the
+  // ResizeObserver watches the slides, not just the track, and re-measures when
+  // each one settles — which also covers the widths changing at a breakpoint.
+  const [padX, setPadX] = useState(null)
+  useLayoutEffect(() => {
+    const el = scrollRef.current
+    if (!el) return
+
+    const measure = () => {
+      const slides = el.querySelectorAll('[data-gallery-slide]')
+      if (!slides.length) return
+      // clientWidth includes the padding we are about to set, but border-box
+      // sizing keeps the element's own width fixed, so this cannot feed back.
+      const room = el.clientWidth
+      const left = Math.max(0, (room - slides[0].offsetWidth) / 2)
+      const right = Math.max(0, (room - slides[slides.length - 1].offsetWidth) / 2)
+      setPadX((prev) =>
+        prev && prev.left === left && prev.right === right ? prev : { left, right },
+      )
+    }
+
+    measure()
+    const ro = new ResizeObserver(measure)
+    ro.observe(el)
+    el.querySelectorAll('[data-gallery-slide]').forEach((slide) => ro.observe(slide))
+    return () => ro.disconnect()
+  }, [images.length])
+
+  // Prev/next centre the neighbouring slide, in the element's own unscaled
+  // pixels (offsetWidth/offsetLeft are layout px, not transformed). Stepping by
+  // a width + gap constant would drift, because each slide is a different width.
   const scrollByOne = (dir) => {
     const el = scrollRef.current
     if (!el) return
-    const slide = el.querySelector('[data-gallery-slide]')
-    const step = (slide ? slide.offsetWidth : el.clientWidth) + gap
-    el.scrollBy({ left: dir * step, behavior: 'smooth' })
+    const slides = [...el.querySelectorAll('[data-gallery-slide]')]
+    if (!slides.length) return
+
+    const EDGE = 4 // px slack — scroll offsets round, exact compares flap
+    const viewCentre = el.scrollLeft + el.clientWidth / 2
+    const centres = slides.map((s) => s.offsetLeft + s.offsetWidth / 2)
+    const target =
+      dir > 0
+        ? centres.find((c) => c > viewCentre + EDGE)
+        : centres.reverse().find((c) => c < viewCentre - EDGE)
+    if (target == null) return
+    el.scrollTo({ left: target - el.clientWidth / 2, behavior: 'smooth' })
   }
 
   return (
@@ -203,18 +246,17 @@ function ProjectGallery({
         ref={scrollRef}
         data-gallery-item
         data-horizontal-scroll
-        className="mt-10 tablet:mt-12 md:mt-12 w-full overflow-x-auto overflow-y-hidden flex cursor-grab select-none [&::-webkit-scrollbar]:hidden"
+        // `relative` makes the track the slides' offsetParent, so their
+        // offsetLeft is a position inside the scroll content — which is what
+        // scrollByOne compares against scrollLeft. Without it they measure from
+        // the positioned section instead and the arrows land off-centre.
+        className="relative mt-10 tablet:mt-12 md:mt-12 w-full overflow-x-auto overflow-y-hidden flex cursor-grab select-none [&::-webkit-scrollbar]:hidden"
         style={{
-          // Mobile: wide card aligned to a 16px start gutter, with 16px gap and
-          // a 16px peek of the next card (card = 100vw − 16 − 16 − 16). Desktop
-          // keeps the centred 64vw peek-carousel.
-          '--slw': isDesktop
-            ? 'min(1120px, calc(64vw / var(--scale)))'
-            : 'calc(100vw - 48px)',
           '--gap': `${gap}px`,
           gap: 'var(--gap)',
-          paddingLeft: isDesktop ? 'calc((100% - var(--slw)) / 2)' : '16px',
-          paddingRight: isDesktop ? 'calc((100% - var(--slw)) / 2)' : '16px',
+          // Measured, not derived from a slide width — see the padX effect.
+          paddingLeft: `${padX?.left ?? 0}px`,
+          paddingRight: `${padX?.right ?? 0}px`,
           scrollbarWidth: 'none',
           WebkitOverflowScrolling: 'touch',
           touchAction: 'pan-x',
@@ -225,17 +267,17 @@ function ProjectGallery({
           <div
             key={i}
             data-gallery-slide
+            // No width: the slide shrink-wraps its photo, and shrink-0 keeps
+            // flex from squeezing it back down.
             className="shrink-0 overflow-hidden rounded-[6px] bg-navy"
-            style={{ width: 'var(--slw)' }}
           >
             <img
               src={img.src}
               alt={img.alt ?? ''}
-              // tablet: the mobile track is active on iPad now (isDesktop is
-              // DESKTOP_QUERY), so the slide is a `100vw - 48px` card whose width
-              // varies 720→976px across iPad sizes. A fixed height cannot hold
-              // the phone's ~1.98:1 crop across that range — the ratio can.
-              className="block w-full h-[193px] tablet:h-auto tablet:aspect-[1.98/1] md:h-[440px] object-cover"
+              // Every photo in a breakpoint is the same height and as wide as
+              // its own aspect ratio makes it — variable widths, and no crop.
+              // `w-auto` is what lets the intrinsic ratio set the width.
+              className="block h-[193px] tablet:h-[440px] md:h-[440px] w-auto object-contain"
               draggable="false"
             />
           </div>

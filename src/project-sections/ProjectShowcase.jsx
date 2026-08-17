@@ -115,9 +115,15 @@ function Slide({ heading, bodyLeft, bodyRight, image }) {
           )}
         </div>
 
-        {/* Illustration — centered on the stage's fixed center line */}
+        {/* Illustration — centered on the stage's fixed center line. iPad runs
+            this section unlocked (1:1 CSS px), so it gets its own width rather
+            than the phone canvas's 187. */}
         <div className="flex items-center justify-center md:justify-end">
-          <div data-anim data-anim-speed="1.1" className="w-full max-w-[187px] md:max-w-[273px]">
+          <div
+            data-anim
+            data-anim-speed="1.1"
+            className="w-full max-w-[187px] tablet:max-w-[290px] md:max-w-[273px]"
+          >
             {image ? (
               <img
                 src={image}
@@ -352,10 +358,12 @@ function ProjectShowcase({ slides = [] }) {
       bg="bg-black"
       className="relative flex flex-col items-center justify-center overflow-hidden text-mist"
     >
+      {/* iPad opens with a deep top gap (3x the phone's) so the heading sits
+          well clear of the section's top edge, per the tablet design. */}
       <div
         ref={stageRef}
         data-showcase-reveal
-        className="w-full pb-4 tablet:pb-6 pt-8 tablet:pt-10 md:py-0"
+        className="w-full pb-4 tablet:pb-6 pt-8 tablet:pt-[132px] md:py-0"
         onPointerDown={onDown}
         onPointerUp={onUp}
         onPointerLeave={onUp}
@@ -394,7 +402,7 @@ function ProjectShowcase({ slides = [] }) {
             <div className="flex justify-center md:justify-end">
               {/* max-w mirrors the illustration's, so the dots and arrows share
                   its centre line instead of the wider column's. */}
-              <div className="mt-10 flex w-full max-w-[187px] md:max-w-[273px] flex-col items-center gap-8 md:mt-14">
+              <div className="mt-10 flex w-full max-w-[187px] tablet:max-w-[290px] md:max-w-[273px] flex-col items-center gap-8 md:mt-14">
                 <div className="flex items-center justify-center gap-2.5">
                   {slides.map((_, i) => (
                     <button
