@@ -25,13 +25,16 @@ const PORTFOLIO_FALLBACK = {
   ctaLabel: 'CHECK ALL',
 }
 
-export function ProjectIllustration({ variant }) {
+// `className` is appended to the <svg> so a caller can override the built-in
+// max-width — the projects list needs the illustration to span the full card
+// width on tablet, which a parent element cannot force from the outside.
+export function ProjectIllustration({ variant, className = '' }) {
   const stroke = '#3A3E4A'
   const fill = '#252830'
 
   if (variant === 0) {
     return (
-      <svg viewBox="0 0 600 180" className="w-full max-w-[520px] h-auto" aria-hidden="true">
+      <svg viewBox="0 0 600 180" className={`w-full max-w-[520px] h-auto ${className}`} aria-hidden="true">
         <path
           d="M 40 150 Q 240 30 560 80 L 560 160 L 40 160 Z"
           fill={fill}
@@ -56,7 +59,7 @@ export function ProjectIllustration({ variant }) {
 
   if (variant === 1) {
     return (
-      <svg viewBox="0 0 600 180" className="w-full max-w-[540px] h-auto" aria-hidden="true">
+      <svg viewBox="0 0 600 180" className={`w-full max-w-[540px] h-auto ${className}`} aria-hidden="true">
         <line x1="0" y1="160" x2="600" y2="160" stroke="#4A4E5A" strokeWidth="0.6" />
         <line x1="0" y1="95" x2="600" y2="95" stroke="#4A4E5A" strokeWidth="0.4" />
         {Array.from({ length: 9 }).map((_, i) => {
@@ -91,7 +94,7 @@ export function ProjectIllustration({ variant }) {
 
   if (variant === 2) {
     return (
-      <svg viewBox="0 0 600 180" className="w-full max-w-[520px] h-auto" aria-hidden="true">
+      <svg viewBox="0 0 600 180" className={`w-full max-w-[520px] h-auto ${className}`} aria-hidden="true">
         <path
           d="M 30 60 Q 200 20 400 50 T 580 70 L 580 160 L 30 160 Z"
           fill={fill}
@@ -125,7 +128,7 @@ export function ProjectIllustration({ variant }) {
   }
 
   return (
-    <svg viewBox="0 0 600 180" className="w-full max-w-[540px] h-auto" aria-hidden="true">
+    <svg viewBox="0 0 600 180" className={`w-full max-w-[540px] h-auto ${className}`} aria-hidden="true">
       <line x1="0" y1="160" x2="600" y2="160" stroke="#4A4E5A" strokeWidth="0.6" />
       <line x1="0" y1="105" x2="600" y2="105" stroke="#4A4E5A" strokeWidth="0.4" />
       <rect x="40" y="85" width="220" height="75" fill={fill} stroke="#4A4E5A" strokeWidth="0.5" />
@@ -500,12 +503,12 @@ function PortfolioSlider() {
   const checkAllCta = (
     <Link
       to="/projects"
-      className="group inline-flex w-fit h-[46px] tablet:h-[32px] items-center gap-[5px] tablet:gap-[4px] rounded-[48px] border-[0.25px] border-navy bg-navy px-[14px] tablet:px-[10px] font-['Akkurat_Mono',monospace] text-[10px] tablet:text-[8px] font-medium uppercase leading-none text-mist no-underline transition-colors duration-200 ease-out hover:bg-transparent hover:text-navy"
+      className="group inline-flex w-fit h-[46px] tablet:h-[23.65px] items-center gap-[5px] tablet:gap-[2.69px] rounded-[48px] border-[0.25px] border-navy bg-navy px-[14px] tablet:px-[7.53px] font-['Akkurat_Mono',monospace] text-[10px] tablet:text-[4.3px] font-medium uppercase leading-none text-mist no-underline transition-colors duration-200 ease-out hover:bg-transparent hover:text-navy"
     >
-      <span className="relative top-[1.5px]">{portfolio.ctaLabel}</span>
+      <span className="relative top-[1.5px] tablet:top-[0.8px]">{portfolio.ctaLabel}</span>
       {/* ArrowIcon sizes itself with an inline style, which no Tailwind class
           can override — so the tablet size comes from the JS predicate. */}
-      <ArrowIcon size={isTablet ? 11 : 14} className="relative top-[0.5px]" />
+      <ArrowIcon size={isTablet ? 6 : 14} className="relative top-[0.5px]" />
     </Link>
   )
 
@@ -520,7 +523,7 @@ function PortfolioSlider() {
           alone. */}
       <div className="flex items-start justify-between gap-4">
         <h2
-          className="m-0 text-[30px] tablet:text-[22px] md:text-[44px] leading-[100%] tracking-[-0.02em] text-navy"
+          className="m-0 text-[30px] tablet:text-[19.35px] md:text-[44px] leading-[100%] tablet:leading-[95%] md:leading-[100%] tracking-[-0.02em] text-navy"
           style={{ fontFamily: "'Season Mix VF', serif", fontWeight: 420 }}
         >
           {portfolio.heading[0]}
@@ -530,7 +533,7 @@ function PortfolioSlider() {
         <div className="md:hidden">{checkAllCta}</div>
       </div>
       <p
-        className="m-0 text-[14px] tablet:text-[11px] leading-5 tablet:leading-[16px] tablet:pe-1 text-navy"
+        className="m-0 text-[14px] tablet:text-[7.53px] leading-5 tablet:leading-[7.53px] tablet:pe-0 tablet:max-w-[302px] text-navy"
         style={{ fontFamily: "'Season Sans-TRIAL', sans-serif" }}
       >
         {portfolio.description}
@@ -573,11 +576,17 @@ function PortfolioSlider() {
               the intro is still collected off desktop. Desktop trigger geometry
               is untouched: the above-track intro is not rendered there at all,
               so this wrapper's top edge is exactly the track's. */}
-          <div ref={revealRef} className="flex flex-col gap-4 tablet:gap-6">
+          {/* tablet: every `tablet:` length below is a value from the 800px
+              iPad design frame multiplied by 430/800 = 0.5375 — the canvas the
+              tablet layout lays out on before the zoom (see TABLET_REF). Doing
+              the conversion once, uniformly, is what keeps the frame's
+              1.87-cards-per-view (800 / 427.98) true at every iPad width
+              instead of only at 800. */}
+          <div ref={revealRef} className="flex flex-col gap-4 tablet:gap-[18px]">
             {!isDesktop && (
               <div
                 data-reveal
-                className="w-full flex flex-col gap-6 tablet:gap-4 px-4 py-4 tablet:py-0"
+                className="w-full flex flex-col gap-6 tablet:gap-[11.8px] px-4 py-4 tablet:py-0"
               >
                 {introBlock}
               </div>
@@ -585,7 +594,7 @@ function PortfolioSlider() {
             <div
               ref={scrollRef}
               data-horizontal-scroll
-              className="flex flex-col md:flex-row tablet:flex-row items-stretch gap-4 tablet:gap-[0.13rem] md:gap-2 px-4 tablet:pr-0 md:pl-[38px] md:pr-2 tablet:overflow-x-auto tablet:overflow-y-hidden md:overflow-x-auto md:overflow-y-hidden md:cursor-grab select-none [&::-webkit-scrollbar]:hidden"
+              className="flex flex-col md:flex-row tablet:flex-row items-stretch gap-4 tablet:gap-[2.7px] md:gap-2 px-4 tablet:pr-0 md:pl-[38px] md:pr-2 tablet:overflow-x-auto tablet:overflow-y-hidden md:overflow-x-auto md:overflow-y-hidden md:cursor-grab select-none [&::-webkit-scrollbar]:hidden"
               style={{
                 scrollbarWidth: 'none',
                 WebkitOverflowScrolling: 'touch',
@@ -636,22 +645,26 @@ function PortfolioSlider() {
                 <article
                   key={project.slug}
                   data-reveal
-                  // tablet: two cards (2 x 178) plus the gap-2 either side of
-                  // them fill the 414px of track inside the left gutter bar a
-                  // ~42px peek of the third — the cut-off card is what says the
-                  // row scrolls. Narrowing the gap widened the cards to hold
-                  // that peek constant: 414 - 2*178 - 2*8 = 42.
-                  className="flex-shrink-0 w-full tablet:w-[178px] md:w-[496px] bg-navy px-6 tablet:px-4 py-8 tablet:py-5 md:px-[38px] md:py-10 flex flex-col gap-10 tablet:gap-4 md:gap-[70px] text-mist"
+                  // tablet: 427.98 frame px wide, so the 430 canvas shows 1.87
+                  // of them — one whole card and most of the next, the cut-off
+                  // card being what says the row scrolls. The 52.36 frame-px
+                  // gap separates all three rows (title block, cover, button),
+                  // which is what makes the card come out at its 397.42 height.
+                  className="flex-shrink-0 w-full tablet:w-[230px] md:w-[496px] bg-navy px-6 tablet:px-[15.28px] py-8 tablet:py-[16.08px] md:px-[38px] md:py-10 flex flex-col gap-10 tablet:gap-[28.14px] md:gap-[70px] text-mist"
                 >
                   <div>
                     <h3
-                      className="m-0 text-[22px] tablet:text-[16px] leading-[115%] tracking-[-0.02em] text-mist"
+                      className="m-0 text-[22px] tablet:text-[9.14px] leading-[115%] tracking-[-0.02em] text-mist"
                       style={{ fontFamily: "'Season Mix VF', serif", fontWeight: 420 }}
                     >
                       {project.title}
                     </h3>
                     <p
-                      className="mt-[18px] tablet:mt-[10px] text-[12px] tablet:text-[10px] leading-4 tablet:leading-[13px] text-mist line-clamp-2"
+                      // tablet: the copy wraps inside 301.24 of the card's
+                      // 371.13 content width, four lines deep — the 50-high
+                      // text box of the frame, not the two-line clamp the
+                      // narrower phone card uses.
+                      className="mt-[18px] tablet:mt-[4.78px] text-[12px] tablet:text-[5.91px] leading-4 tablet:leading-[6.72px] tablet:max-w-[162px] text-mist line-clamp-2 tablet:line-clamp-4"
                       style={{ fontFamily: "'Season Sans-TRIAL', sans-serif" }}
                     >
                       {project.short || project.description}
@@ -670,13 +683,11 @@ function PortfolioSlider() {
                         alt={project.title}
                         draggable={false}
                         ref={fitCardToImage}
-                        // The 317.91x102.79 box is authored for a full-width
-                        // card — nearly twice the tablet card. Left at that
-                        // fixed height, a ~3:1 cover refits to 138x45 by
-                        // object-contain and the remaining 58px of box is dead
-                        // space, which is what made the tablet card 170x346.
-                        // `h-auto` lets the box follow the cover's own aspect.
-                        className="h-[102.79px] w-[317.91px] tablet:h-auto tablet:w-full object-contain md:h-[150px] md:w-auto md:max-w-none"
+                        // tablet: 371.13x120 frame px — the full content width
+                        // of the card. That is the same 3.09:1 as the phone's
+                        // 317.91x102.79 box, so object-contain leaves no dead
+                        // space at either size.
+                        className="h-[102.79px] w-[317.91px] tablet:h-[64.5px] tablet:w-full object-contain md:h-[150px] md:w-auto md:max-w-none"
                       />
                     ) : (
                       <ProjectIllustration variant={i % 4} />
@@ -685,17 +696,19 @@ function PortfolioSlider() {
 
                   <Link
                     to={`/projects/${project.slug}`}
-                    className="group mt-auto inline-flex w-fit h-[46px] tablet:h-[32px] flex-shrink-0 items-center gap-[5px] tablet:gap-[4px] rounded-[48px] border-[0.25px] border-mist px-[14px] tablet:px-[10px] font-['Akkurat_Mono',monospace] text-[10px] tablet:text-[8px] font-medium uppercase leading-none text-mist no-underline transition-colors duration-200 ease-out hover:bg-mist hover:text-navy"
+                    className="group mt-auto inline-flex w-fit h-[46px] tablet:h-[18.49px] flex-shrink-0 items-center gap-[5px] tablet:gap-[2.01px] rounded-[48px] tablet:rounded-[19.3px] border-[0.25px] tablet:border-[0.1px] border-mist px-[14px] tablet:px-[5.63px] font-['Akkurat_Mono',monospace] text-[10px] tablet:text-[4.3px] font-medium uppercase leading-none text-mist no-underline transition-colors duration-200 ease-out hover:bg-mist hover:text-navy"
                   >
-                    <span className="relative top-[1px]">DISCOVER</span>
-                    <ArrowIcon size={isTablet ? 11 : 14} />
+                    <span className="relative top-[1px] tablet:top-[0.5px]">DISCOVER</span>
+                    <ArrowIcon size={isTablet ? 6 : 14} />
                   </Link>
                 </article>
               ))}
             </div>
           </div>
 
-          <div className="mt-8 mx-auto hidden tablet:block md:block w-full max-w-[280px] h-[2px] bg-[#1C2D4F]/15 relative">
+          {/* tablet: the bar keeps the desktop's ~19% of the canvas width
+              rather than the 65% a flat 280px comes to on 430. */}
+          <div className="mt-8 tablet:mt-[20px] mx-auto hidden tablet:block md:block w-full max-w-[280px] tablet:max-w-[93px] h-[2px] tablet:h-[1px] bg-[#1C2D4F]/15 relative">
             <div
               ref={progressFillRef}
               className="absolute top-0 h-full bg-[#1C2D4F] transition-[left] duration-150 ease-out"

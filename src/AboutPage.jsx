@@ -242,7 +242,7 @@ function AboutPage() {
                       <p
                         key={i}
                         data-reveal
-                        className="m-0 text-[28px] tablet:text-[30px] md:text-[42px] font-normal leading-[1.2] tracking-[-0.84px] tablet:tracking-[-0.6px] text-white"
+                        className="m-0 text-[28px] tablet:text-[30px] md:text-[34px] font-normal leading-[1.2] tracking-[-0.84px] tablet:tracking-[-0.6px] text-white"
                       >
                         {p.lead}{' '}
                         <span className="text-white/60">{p.muted}</span>

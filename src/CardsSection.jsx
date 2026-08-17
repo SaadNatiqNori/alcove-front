@@ -150,8 +150,29 @@ function CardsSection() {
 
           const from = accentEl.parentElement.getBoundingClientRect()
           const to = targetEl.getBoundingClientRect()
-          const fromSize = parseFloat(window.getComputedStyle(accentEl).fontSize)
-          const toSize = parseFloat(window.getComputedStyle(targetEl).fontSize)
+          const fromStyle = window.getComputedStyle(accentEl)
+          const toStyle = window.getComputedStyle(targetEl)
+          const fromSize = parseFloat(fromStyle.fontSize)
+          const toSize = parseFloat(toStyle.fontSize)
+
+          // Tracking and leading are the two type properties the flight's scale
+          // does NOT carry: the clone keeps whatever it was given while it grows
+          // into a title authored with different values (on tablet the titles
+          // are -0.04em/100% against the copy's -0.01em/110%), so it lands
+          // wider and lower than the h3 it hands off to. Take off with the
+          // word's own values and tween to the title's.
+          //
+          // Both stay font-relative (em / unitless) rather than px: the clone's
+          // font-size never changes during the flight — only its transform scale
+          // does — so a ratio taken against each element's own font-size lands on
+          // the title's rendered value automatically. It also sidesteps
+          // CSSPlugin's autoRound, which quantizes px values to whole pixels and
+          // turned a -0.58px tracking into -1px. A no-op wherever the two agree.
+          const px = (v, fallback) => parseFloat(v) || fallback
+          const fromTracking = px(fromStyle.letterSpacing, 0) / fromSize
+          const toTracking = px(toStyle.letterSpacing, 0) / toSize
+          const fromLeading = px(fromStyle.lineHeight, fromSize * 1.2) / fromSize
+          const toLeading = px(toStyle.lineHeight, toSize * 1.2) / toSize
 
           const clone = document.createElement('span')
           clone.setAttribute('data-flight-clone', '')
@@ -164,8 +185,8 @@ function CardsSection() {
             color: 'var(--color-gold)',
             fontSize: `${fromSize}px`,
             fontWeight: '400',
-            lineHeight: '120%',
-            letterSpacing: '-0.01em',
+            lineHeight: `${fromLeading}`,
+            letterSpacing: `${fromTracking}em`,
             whiteSpace: 'nowrap',
             zIndex: '100',
             pointerEvents: 'none',
@@ -184,6 +205,8 @@ function CardsSection() {
             dx: to.left - from.left,
             dy: to.top - from.top,
             scaleTo: (toSize / fromSize) * scale,
+            toTracking,
+            toLeading,
           }
         }).filter(Boolean)
 
@@ -321,11 +344,22 @@ function CardsSection() {
 
         tl.set(cardsEl, { autoAlpha: 1 }, FLY)
 
-        flights.forEach(({ accentEl, targetEl, clone, dx, dy, scaleTo }, i) => {
+        flights.forEach(({ accentEl, targetEl, clone, dx, dy, scaleTo, toTracking, toLeading }, i) => {
           const start = FLY + i * 0.08
           tl.set(accentEl, { opacity: 0 }, start)
           tl.set(clone, { autoAlpha: 1 }, start)
-          tl.to(clone, { x: dx, y: dy, scale: scaleTo, duration: 1.4 }, start)
+          tl.to(
+            clone,
+            {
+              x: dx,
+              y: dy,
+              scale: scaleTo,
+              letterSpacing: `${toTracking}em`,
+              lineHeight: `${toLeading}`,
+              duration: 1.4,
+            },
+            start
+          )
           tl.to(targetEl, { opacity: 1, duration: 0.15 }, start + 1.3)
           tl.to(clone, { autoAlpha: 0, duration: 0.15 }, start + 1.4)
         })
@@ -432,17 +466,38 @@ function CardsSection() {
             height: `${100 / scale}vh`,
           }}
         >
-          <main className="relative h-full max-w-[1440px] mx-auto flex flex-col bg-navy px-4 pb-8 pt-[88px] tablet:pt-[30px] tablet:pb-4 text-[#d6deea] md:px-8 md:py-12">
+          {/* tablet: the gutter is the design's 40.48px left inset divided by the
+              iPad Pro 11" zoom (834/430 = 1.9395), which the wrapper's scale
+              multiplies back out. Shared by the copy and the cards below so both
+              sit on the one gutter. */}
+          <main className="relative h-full max-w-[1440px] mx-auto flex flex-col bg-navy px-4 pb-8 pt-[88px] tablet:px-[20.87px] tablet:pt-[30px] tablet:pb-4 text-[#d6deea] md:px-8 md:py-12">
           <div className="relative mx-auto flex flex-1 items-center max-w-[1440px] w-full">
             <section ref={heroTextRef} aria-label="Company introduction">
               {/* tablet: iPad portrait zooms the 430px mobile canvas by
-                  1.79-2.38x, so the phone's 34px intro renders 61-81px. */}
-              <p className="m-0 text-[34px] tablet:text-[26px] font-normal not-italic leading-[110%] tracking-[-0.01em] md:text-[58px]">
+                  1.79-2.38x, so the phone's 34px intro renders 61-81px. The
+                  tablet trio below is the design's 630px column (÷ the 834/430
+                  zoom) plus the size and tracking that reproduce its 12 lines.
+                  Only the column is given; the other two are solved, because
+                  each word here is an inline-block whose trailing space sits
+                  INSIDE it and so counts toward line-fitting — this markup wraps
+                  earlier than the same copy as plain text in Figma, and no size
+                  matches at the site's usual -0.01em. At the display type's -4%
+                  (the tracking the card titles use) sizes 28.5-29.4px canvas all
+                  wrap to the design's exact break points; 29 sits mid-band so a
+                  small metrics difference in another engine can't tip it. */}
+              <p className="m-0 text-[34px] tablet:text-[29px] tablet:max-w-[324.8px] tablet:tracking-[-0.04em] font-normal not-italic leading-[110%] tracking-[-0.01em] md:text-[58px]">
                 {words.map((word, i) => {
                   const cleanWord = word.replace(/[.,]/g, '')
                   const isAccent = ACCENT_WORDS.has(cleanWord)
                   return (
-                    <span key={i} className="inline-block overflow-hidden">
+                    // tablet: each word is an inline-block, so baseline
+                    // alignment makes every line box taller than the
+                    // line-height (the strut's descent lands below the box's
+                    // baseline) — the copy renders at a ~72px pitch where the
+                    // design's 754px over 12 lines wants 62.8. Aligning the
+                    // wrappers to the top decouples them from the baseline and
+                    // the pitch collapses to the line-height exactly.
+                    <span key={i} className="inline-block overflow-hidden tablet:align-top">
                       <span
                         ref={(el) => {
                           if (el) {
@@ -489,14 +544,14 @@ function CardsSection() {
                     className="mb-3 text-[16px] leading-none tracking-[-0.01em] text-gold md:text-[22.4px]"
                     style={{ fontFamily: "'Season Mix-TRIAL', serif" }}
                   >
-                    <img src={logoYellow} alt="Alcove" className="w-auto h-[14px] tablet:h-[10px] md:h-[24px]" />
+                    <img src={logoYellow} alt="Alcove" className="w-auto h-[14px] tablet:h-[13.13px] md:h-[24px]" />
                   </p>
 
                   <h3
                     ref={(el) => {
                       if (el) cardTitleRefs.current[card.title] = el
                     }}
-                    className="m-0 text-[44px] tablet:text-[30px] font-normal tracking-[-0.01em] leading-[120%] text-gold md:text-[58px]"
+                    className="m-0 text-[44px] tablet:text-[27.84px] tablet:leading-[100%] tablet:tracking-[-0.04em] font-normal tracking-[-0.01em] leading-[120%] text-gold md:text-[58px]"
                     style={{ fontFamily: "'Season Mix-TRIAL', serif" }}
                   >
                     {card.title}
@@ -506,9 +561,16 @@ function CardsSection() {
                     ref={(el) => {
                       if (el) cardContentRefs.current.push(el)
                     }}
-                    className="mt-4 md:mt-auto"
+                    // tablet: the design's 52px title-to-description gap is a
+                    // CAP_HEIGHT-trimmed distance (title baseline -> description
+                    // cap top), but a CSS margin joins line BOXES: pasted in raw
+                    // it measured 61.89px cap-to-cap. Subtracting the title's
+                    // 3.92px of below-baseline box and the description's 1.18px
+                    // of above-cap box leaves 21.71px canvas (42.11 rendered),
+                    // which measures 52 cap-to-cap.
+                    className="mt-4 tablet:mt-[21.71px] md:mt-auto"
                   >
-                    <p className=" w-[80%] pe-4 text-[14px] tablet:text-[11px] font-normal leading-[140%] tracking-[0] text-mist md:text-[16px] md:leading-[120%]">
+                    <p className=" w-[80%] pe-4 text-[14px] tablet:text-[8.25px] tablet:leading-[100%] font-normal leading-[140%] tracking-[0] text-mist md:text-[16px] md:leading-[120%]">
                       {card.description}
                     </p>
                   </div>

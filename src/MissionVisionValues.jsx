@@ -15,6 +15,14 @@ const CTA_FALLBACK = {
 
 gsap.registerPlugin(ScrollTrigger)
 
+// iPad Pro 11" portrait — the canvas the tablet cards are designed on. Like the
+// hero (TABLET_HERO_REF) and unlike the rest of the site (which zooms the 430px
+// phone canvas, see TABLET_REF), this section has its own iPad design: the
+// desktop's two-column split, with the drawing dropped under the copy in the
+// right-hand column. Every `tablet:` value below is a raw px measurement off
+// that 834-wide artboard, and the section zooms it to whichever iPad it is on.
+const TABLET_MVV_REF = 834
+
 const MVV_FALLBACK = {
   mission: {
     title: 'Mission',
@@ -129,9 +137,9 @@ function ValuesIllustration({ className = 'w-[480px] h-[320px]' }) {
 
 function ValuesContent({ intro, items }) {
   return (
-    <div className="text-[14px] tablet:text-[10px] leading-[150%] tracking-[0] max-w-[520px] text-[#1C2D4F]">
+    <div className="text-[14px] tablet:text-[13px] leading-[150%] tablet:leading-[120%] tracking-[0] max-w-[520px] text-[#1C2D4F]">
       <p className="m-0">{intro}</p>
-      <ul className="mt-3 tablet:mt-2 list-none p-0 m-0 space-y-1">
+      <ul className="mt-3 tablet:mt-[12px] list-none p-0 m-0 space-y-1 tablet:space-y-[6px]">
         {items.map((item) => (
           <li key={item.term} className="flex items-baseline gap-2">
             <span className="inline-block w-[5px] h-[5px] rounded-full bg-[#1C2D4F] translate-y-[-2px]" />
@@ -150,50 +158,44 @@ function Card({ refProp, title, description, isValues, values, illustration, zIn
     <div
       ref={refProp}
       style={{ zIndex }}
-      className="absolute inset-0 flex flex-col bg-[#E6EBF0] px-4 pt-[0px] md:px-8 md:pt-[0] will-change-transform"
+      className="absolute inset-0 flex flex-col bg-[#E6EBF0] px-4 tablet:px-[45px] pt-[0px] md:px-8 md:pt-[0] will-change-transform"
     >
       {/* Each card is a solid full-viewport panel, so when it rises it covers
           the card beneath it completely as a fixed layer. */}
-      <div className="flex-1 flex flex-col justify-start bg-[#E6EBF0] -mx-4 px-4 md:-mx-8 md:px-8">
+      <div className="flex-1 flex flex-col justify-start bg-[#E6EBF0] -mx-4 px-4 tablet:-mx-[45px] tablet:px-[45px] md:-mx-8 md:px-8">
         <div className="w-full h-[1px] bg-[#1C2D4F]/30" />
-        {/* tablet: iPad portrait zooms the 430px mobile canvas by 1.79-2.38x,
-            so the phone's 44px title renders 79-105px and its 14px body 25-33px.
-            The card is scaled down ~0.7x here — type, gaps and drawing together,
-            so its internal proportions are unchanged. Phones and desktop keep
-            their sizes. */}
         {/* Phones stack title → body → drawing in one column; desktop puts the
-            title in a fixed 460px column beside the text. iPad portrait gets its
-            own two-column split — title and body stacked top-aligned on the
-            left, the drawing in a fixed 230px column on the right. The body and
-            drawing share a wrapper for the other two layouts, so `tablet:contents`
-            dissolves it there and lets both become grid items in their own right;
-            explicit col/row starts then place all three.
+            title in a fixed 460px column beside the text. iPad portrait follows
+            the desktop split rather than the phone stack, at the artboard's own
+            measurements: the copy column is 369px wide and starts at x=329 (45px
+            gutter + a 284px title column), and the drawing sits UNDER the copy in
+            that same column, 60px below it. The body and drawing share a wrapper
+            for the other two layouts, so `tablet:contents` dissolves it here and
+            lets both become grid items in their own right; explicit col/row
+            starts then place all three.
 
-            230 of the 398px canvas is the drawing's share, and it is load-bearing
-            rather than taste: side by side, the card's content is only about half
-            as tall as the stacked phone one, which is exactly what leaves the dead
-            band under it. The drawing is the tall element, so widening its column
-            is the only thing that fills that height back — and 230/150 also lands
-            on the reference's roughly 30/70 text-to-image split. */}
-        <div className="mt-6 grid grid-cols-1 tablet:grid-cols-[minmax(0,1fr)_230px] md:grid-cols-[460px_1fr] gap-[14px] tablet:gap-x-[18px] tablet:gap-y-[10px] md:gap-16 tablet:items-start">
+            The 60px is the row gap, which is why the drawing needs no top margin
+            of its own on tablet: only column 2 has a second row, so the gap
+            measures exactly copy-bottom → drawing-top. */}
+        <div className="mt-6 tablet:mt-[36px] grid grid-cols-1 tablet:grid-cols-[284px_369px] md:grid-cols-[460px_1fr] gap-[14px] tablet:gap-x-0 tablet:gap-y-[60px] md:gap-16 tablet:items-start">
           <h3
-            className="m-0 text-[44px] tablet:text-[32px] md:text-[58px] font-normal leading-none tracking-[-0.01em] tablet:col-start-1 tablet:row-start-1"
+            className="m-0 text-[44px] tablet:text-[42px] md:text-[58px] font-normal leading-none tracking-[-0.01em] tablet:tracking-[-0.04em] tablet:col-start-1 tablet:row-start-1"
             style={{ fontFamily: "'Season Mix-TRIAL', serif" }}
           >
             {title}
           </h3>
           <div className="tablet:contents">
-            <div className="tablet:col-start-1 tablet:row-start-2">
+            <div className="tablet:col-start-2 tablet:row-start-1">
               {isValues ? (
                 <ValuesContent intro={values.intro} items={values.items} />
               ) : (
-                <p className="m-0 text-[14px] tablet:text-[10px] leading-[130%] tracking-[0] max-w-[520px] text-[#1C2D4F]">
+                <p className="m-0 text-[14px] tablet:text-[13px] leading-[130%] tablet:leading-[120%] tracking-[0] max-w-[520px] text-[#1C2D4F]">
                   {description}
                 </p>
               )}
             </div>
             <div
-              className="mt-10 tablet:mt-0 flex justify-center md:justify-start tablet:justify-start tablet:col-start-2 tablet:row-start-1 tablet:row-span-2 tablet:self-start"
+              className="mt-10 tablet:mt-0 flex justify-center md:justify-start tablet:justify-start tablet:col-start-2 tablet:row-start-2"
             >
               {illustration}
             </div>
@@ -205,7 +207,7 @@ function Card({ refProp, title, description, isValues, values, illustration, zIn
 }
 
 function MissionVisionValues() {
-  const scale = useScale(1440, 430)
+  const scale = useScale(1440, 430, TABLET_MVV_REF)
   const home = useContent('home', { mvv: MVV_FALLBACK })
   const mvv = home.mvv ?? MVV_FALLBACK
   const footer = useContent('footer', { cta: CTA_FALLBACK })
@@ -229,8 +231,8 @@ function MissionVisionValues() {
   const isDesktop = useIsDesktop()
 
   // iPad portrait only. Its stage is the same viewport height as everyone
-  // else's, but the two-column card puts title, copy and drawing side by side
-  // rather than stacked, so the content fills barely a third of the panel and
+  // else's, but the card is laid out on its own 834px artboard rather than the
+  // zoomed phone canvas, so its content ends around 490 of ~1200 canvas px and
   // the dead band under it is roughly double the phone's. PEEK is the knob for
   // exactly that band (see below) — the tablet gets the largest head start the
   // timeline can carry.
@@ -329,16 +331,22 @@ function MissionVisionValues() {
       // two the reader has already seen.
       tl.to(valuesRef.current, { yPercent: DRIFT, duration: 1 }, 2)
 
-      if (isDesktop) {
-        // Footer mirrors Values' early rise, one beat later: PEEK% up by t=2.
-        tl.to(footerRef.current, { yPercent: 0, duration: riseDur }, 3 - riseDur)
-      } else {
-        // Mobile: the footer is a 553px strip rather than a full panel, so it
-        // rises across the last beat with no PEEK head start — its edge would
-        // otherwise show while Values was still arriving. yPercent is relative
-        // to the strip's own height, so 100 parks it just below the stage.
-        tl.to(footerRef.current, { yPercent: 0, duration: 1 }, 2)
-      }
+      // Footer mirrors Values' early rise, one beat later: PEEK% up by t=2.
+      //
+      // The exception is the PHONE, where the footer is a 553px strip rather
+      // than a full panel and rises across the last beat with no head start —
+      // its edge would otherwise show while Values was still arriving. Tablet
+      // portrait renders that same strip, but the head start is exactly what it
+      // needs: its card is laid out on the 834 artboard and ends around 40% of
+      // the much taller iPad stage, so waiting for beat 2 leaves a wide band of
+      // bare card under Values with no navy anywhere in it. Rising early puts
+      // the footer's edge into that band while Values is still arriving.
+      const early = isDesktop || isTabletPortrait
+      const footerStart = early ? 3 - riseDur : 2
+      const footerDur = early ? riseDur : 1
+      // yPercent is relative to the strip's own height, so 100 parks it just
+      // below the stage on both mobile branches.
+      tl.to(footerRef.current, { yPercent: 0, duration: footerDur }, footerStart)
 
       // Footer (last layer) settles docked; the sticky stage releases at the
       // section end, so the footer holds full-screen as the page bottom.
@@ -377,12 +385,13 @@ function MissionVisionValues() {
       // scroll offset where THIS timeline puts its top edge on that same 80%
       // line. Desktop's layer is as tall as the stage, so risesIntoViewAt covers it.
       // The mobile strip is not, so its top sits at (100 − h) + yPercent·h
-      // percent of the stage; with yPercent running 100→0 across beat 2→3 that
-      // crosses the line at beat 2 + (100 − IN_VIEW_AT)/h. Measured live, so a
-      // different viewport or rewrapped CMS copy re-derives it on refresh.
+      // percent of the stage; with yPercent running 100→0 across its own rise
+      // window that crosses the line at footerStart + footerDur·(100 −
+      // IN_VIEW_AT)/h. Measured live, so a different viewport or rewrapped CMS
+      // copy re-derives it on refresh.
       const stripStart = () => {
         const h = (footerRef.current.offsetHeight / stickyRef.current.offsetHeight) * 100
-        return atBeat(Math.min(3, 2 + (100 - IN_VIEW_AT) / h))()
+        return atBeat(Math.min(3, footerStart + (footerDur * (100 - IN_VIEW_AT)) / h))()
       }
       revealFooterPanel(
         [
@@ -435,12 +444,12 @@ function MissionVisionValues() {
                     <img
                       src={mvv.mission.image}
                       alt=""
-                      className="w-full max-w-[313px] tablet:max-w-[230px] h-auto"
+                      className="w-full max-w-[313px] tablet:max-w-[268.19px] h-auto"
                     />
                   ) : (
-                    // tablet sizes keep each drawing's own viewBox ratio inside
-                    // the 230px right-hand column, so nothing letterboxes.
-                    <MissionIllustration className="w-[280px] h-[300px] tablet:w-[230px] tablet:h-[243px] max-w-full" />
+                    // tablet sizes keep each drawing's own viewBox ratio at the
+                    // artboard's 268.19px drawing width, so nothing letterboxes.
+                    <MissionIllustration className="w-[280px] h-[300px] tablet:w-[268.19px] tablet:h-[283.09px] max-w-full" />
                   )
                 }
               />
@@ -454,10 +463,10 @@ function MissionVisionValues() {
                     <img
                       src={mvv.vision.image}
                       alt=""
-                      className="w-full max-w-[313px] tablet:max-w-[230px] h-auto"
+                      className="w-full max-w-[313px] tablet:max-w-[268.19px] h-auto"
                     />
                   ) : (
-                    <VisionIllustration className="w-[480px] h-[240px] tablet:w-[230px] tablet:h-[119px] max-w-full" />
+                    <VisionIllustration className="w-[480px] h-[240px] tablet:w-[268.19px] tablet:h-[139.06px] max-w-full" />
                   )
                 }
               />
@@ -472,10 +481,10 @@ function MissionVisionValues() {
                     <img
                       src={mvv.values.image}
                       alt=""
-                      className="w-full max-w-[313px] tablet:max-w-[230px] h-auto"
+                      className="w-full max-w-[313px] tablet:max-w-[268.19px] h-auto"
                     />
                   ) : (
-                    <ValuesIllustration className="w-[480px] h-[320px] tablet:w-[230px] tablet:h-[153px] max-w-full" />
+                    <ValuesIllustration className="w-[480px] h-[320px] tablet:w-[268.19px] tablet:h-[178.79px] max-w-full" />
                   )
                 }
               />
@@ -524,7 +533,12 @@ function MissionVisionValues() {
               59vh here, the phone's proportion restated as one. `fillMobile`
               pours the extra height into the panel's flex slack, so every
               real-pixel value inside it is untouched, and the footer's own
-              reveal trigger measures the strip live (stripStart). */}
+              reveal trigger measures the strip live (stripStart).
+
+              These heights are FIXED — the panel's proportions are the design's,
+              not a tuning knob. When the iPad shows too much bare card under
+              Values, the lever is WHEN the strip rises (see `early` above), never
+              how tall it is. */}
           {!isDesktop && (
             <div
               ref={footerRef}
