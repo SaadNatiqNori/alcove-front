@@ -73,7 +73,10 @@ function Field({ label, type = 'text', value, onChange, trailing, error, multili
   return (
     <div>
       <label
-        className={`group relative block border-b pb-3 transition-colors ${
+        className={`group relative block border-b transition-colors ${
+          // Tighter on the textarea so the resize grip below can sit on the rule.
+          multiline ? 'pb-[6px]' : 'pb-3'
+        } ${
           error
             ? 'border-red-500/70 focus-within:border-red-500'
             : 'border-[#1C2D4F]/25 focus-within:border-[#1C2D4F]'
@@ -83,8 +86,9 @@ function Field({ label, type = 'text', value, onChange, trailing, error, multili
         <div className="flex items-end justify-between gap-3">
           {multiline ? (
             // The textarea is drag-resizable; the native corner grip is hidden and
-            // replaced by the icon below, which sits over that same corner and lets
-            // pointer events through so the drag still works.
+            // replaced by the icon below. It straddles the field's bottom edge so it
+            // rests on the rule while still overlapping the resizer corner, and it
+            // lets pointer events through so the drag keeps working.
             <div className="relative min-w-0 flex-1">
               <textarea
                 value={value}
@@ -99,7 +103,7 @@ function Field({ label, type = 'text', value, onChange, trailing, error, multili
                 width="11"
                 height="11"
                 viewBox="0 0 11 11"
-                className="pointer-events-none absolute bottom-[7px] right-0"
+                className="pointer-events-none absolute -bottom-[6px] right-0"
                 fill="none"
                 stroke={INK}
                 strokeOpacity="0.45"
