@@ -178,7 +178,7 @@ function HeroSustainable() {
           // 41.4/1194 = 3.467%), so both are exact at the artboard height and
           // yield space proportionally on anything shorter. Pairs with the
           // description→card gap, which is clamped the same way.
-          className="relative h-full max-w-[1440px] mx-auto flex flex-col bg-[#E2EAF2] px-4 tablet:px-[39.83px] max-md:pb-[40px] tablet:[padding-bottom:min(41.4px,3.467vh)] max-md:[padding-top:min(196px,21.031vh)] tablet:[padding-top:min(238.88px,20.007vh)] text-[#1C2D4F] md:px-[38px] md:pb-[40px] md:pt-[200.69px]"
+          className="relative h-screen max-w-[1440px] mx-auto flex flex-col bg-[#E2EAF2] px-4 tablet:px-[39.83px] max-md:pb-[40px] tablet:[padding-bottom:min(41.4px,3.467vh)] max-md:[padding-top:min(196px,21.031vh)] tablet:[padding-top:min(238.88px,20.007vh)] text-[#1C2D4F] md:px-[38px] md:pb-[40px] md:pt-[200.69px]"
         >
           {/* tablet: this column takes all the leftover height (`flex-1`) and the
               description block inside it is pushed to the bottom with `mt-auto`,
