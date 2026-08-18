@@ -66,7 +66,10 @@ const DASH_V =
 const DASH_H =
   'repeating-linear-gradient(to right, #AEB8C8 0, #AEB8C8 2px, transparent 2px, transparent 4px)'
 
-function Field({ label, type = 'text', value, onChange, trailing, error }) {
+function Field({ label, type = 'text', value, onChange, trailing, error, multiline, rows = 3 }) {
+  const controlClass =
+    'min-w-0 flex-1 bg-transparent text-[18px] tablet:text-[19px] md:text-[19px] text-[#1C2D4F] outline-none placeholder:text-[#1C2D4F]/45'
+
   return (
     <div>
       <label
@@ -78,14 +81,45 @@ function Field({ label, type = 'text', value, onChange, trailing, error }) {
       >
         <span className="sr-only">{label}</span>
         <div className="flex items-end justify-between gap-3">
-          <input
-            type={type}
-            value={value}
-            onChange={onChange}
-            placeholder={label}
-            aria-invalid={error ? 'true' : undefined}
-            className="min-w-0 flex-1 bg-transparent text-[18px] tablet:text-[19px] md:text-[19px] leading-none text-[#1C2D4F] outline-none placeholder:text-[#1C2D4F]/45"
-          />
+          {multiline ? (
+            // The textarea is drag-resizable; the native corner grip is hidden and
+            // replaced by the icon below, which sits over that same corner and lets
+            // pointer events through so the drag still works.
+            <div className="relative min-w-0 flex-1">
+              <textarea
+                value={value}
+                onChange={onChange}
+                placeholder={label}
+                rows={rows}
+                aria-invalid={error ? 'true' : undefined}
+                className={`${controlClass} block w-full resize-y pr-6 leading-[1.35] [&::-webkit-resizer]:hidden`}
+              />
+              <svg
+                aria-hidden="true"
+                width="11"
+                height="11"
+                viewBox="0 0 11 11"
+                className="pointer-events-none absolute bottom-[7px] right-0"
+                fill="none"
+                stroke={INK}
+                strokeOpacity="0.45"
+                strokeWidth="1.25"
+                strokeLinecap="round"
+              >
+                <path d="M10 3.5L3.5 10" />
+                <path d="M10 7.5L7.5 10" />
+              </svg>
+            </div>
+          ) : (
+            <input
+              type={type}
+              value={value}
+              onChange={onChange}
+              placeholder={label}
+              aria-invalid={error ? 'true' : undefined}
+              className={`${controlClass} leading-none`}
+            />
+          )}
           {trailing}
         </div>
       </label>
@@ -114,6 +148,11 @@ function loadRecaptcha() {
   })
   return recaptchaScriptPromise
 }
+
+// Intrinsic size of the "normal" reCAPTCHA badge, and how far down we scale it.
+const RECAPTCHA_WIDTH = 304
+const RECAPTCHA_HEIGHT = 78
+const RECAPTCHA_SCALE = 0.65
 
 // "I'm not a robot" checkbox. Reports the solved token (or '' when it
 // expires/errors) via onChange, and exposes reset() through resetRef. The
@@ -150,7 +189,21 @@ function Recaptcha({ onChange, resetRef }) {
     }
   }, [onChange, resetRef])
 
-  return <div ref={containerRef} className="flex justify-center" />
+  // The widget renders at a fixed 304x78; scale it down visually and shrink the
+  // reserved height to match, since transform doesn't affect layout.
+  return (
+    <div className="flex justify-center" style={{ height: RECAPTCHA_HEIGHT * RECAPTCHA_SCALE }}>
+      <div
+        ref={containerRef}
+        style={{
+          width: RECAPTCHA_WIDTH,
+          height: RECAPTCHA_HEIGHT,
+          transform: `scale(${RECAPTCHA_SCALE})`,
+          transformOrigin: 'top center',
+        }}
+      />
+    </div>
+  )
 }
 
 function ContactPage() {
@@ -362,17 +415,7 @@ function ContactPage() {
               value={form.message}
               onChange={update('message')}
               error={errors.message}
-              trailing={
-                <svg
-                  aria-hidden="true"
-                  width="13"
-                  height="9"
-                  viewBox="0 0 13 9"
-                  className="mb-[3px] shrink-0"
-                >
-                  <path d="M6.5 0L13 9H0z" fill={INK} />
-                </svg>
-              }
+              multiline
             />
           </div>
 
