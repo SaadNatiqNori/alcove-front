@@ -64,7 +64,14 @@ function ContactSection() {
   return (
     <section
       ref={sectionRef}
-      className={`relative w-full h-auto overflow-hidden bg-navy${
+      // -mt-px: the page above ends in a scaled wrapper whose reserved height is
+      // fractional (offsetHeight * scale), so on a 2x screen the seam between it
+      // and this section lands mid-device-pixel and WebKit leaves that row
+      // unpainted — the mist document background shows through as a hairline
+      // across the width, most visibly on an iPad. A 1px overlap covers the seam
+      // whichever way the rounding falls. It is invisible on the light pages too:
+      // there the navy footer simply starts one pixel higher.
+      className={`relative -mt-px w-full h-auto overflow-hidden bg-navy${
         fillViewport ? ' md:h-screen' : ''
       }`}
       // Tablet zoom: the fit-content footer renders `scale` times taller than

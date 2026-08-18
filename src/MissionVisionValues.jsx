@@ -326,27 +326,62 @@ function MissionVisionValues() {
       // T2 — Vision drifts up; Values (already peeking) finishes rising to cover.
       tl.to(visionRef.current, { yPercent: DRIFT, duration: 1 }, 1)
 
-      // T3 — Values drifts up as the footer arrives, exactly like Mission and
-      // Vision before it, so the last handover carries the same motion as the
-      // two the reader has already seen.
-      tl.to(valuesRef.current, { yPercent: DRIFT, duration: 1 }, 2)
-
-      // Footer mirrors Values' early rise, one beat later: PEEK% up by t=2.
+      // Desktop: the footer mirrors Values' early rise, one beat later, so it is
+      // PEEK% up by t=2 like every layer before it.
       //
-      // The exception is the PHONE, where the footer is a 553px strip rather
-      // than a full panel and rises across the last beat with no head start —
-      // its edge would otherwise show while Values was still arriving. Tablet
-      // portrait renders that same strip, but the head start is exactly what it
-      // needs: its card is laid out on the 834 artboard and ends around 40% of
-      // the much taller iPad stage, so waiting for beat 2 leaves a wide band of
-      // bare card under Values with no navy anywhere in it. Rising early puts
-      // the footer's edge into that band while Values is still arriving.
-      const early = isDesktop || isTabletPortrait
-      const footerStart = early ? 3 - riseDur : 2
-      const footerDur = early ? riseDur : 1
+      // The PHONE instead rises across the last beat with no head start at all —
+      // it is a 553px strip rather than a full panel, and its edge would
+      // otherwise show while Values was still arriving. On the phone that costs
+      // nothing, because the card's content reaches down to about where the
+      // strip's top edge arrives.
+      //
+      // TABLET PORTRAIT starts a whole beat earlier than the phone, at t=1. Its
+      // card is laid out on the 834 artboard (see TABLET_MVV_REF) and its content
+      // ends barely 40% down the much taller iPad stage, so anything later leaves
+      // a wide band of bare card between the drawing and the navy. A head start
+      // alone (the desktop's [3-riseDur, 3] window) is not enough either: the
+      // strip is only 59vh, so mid-rise it never reaches past that band however
+      // early it starts.
+      //
+      // Its DURATION is then the lockstep rule this whole section is built on
+      // (see the top of this effect): the strip has to travel at the same rate
+      // the Values card does, or the band between the drawing and the strip's top
+      // edge changes width as the two move. Values covers a full stage height
+      // across its 2-beat rise — 50% of the stage per beat — and the strip is
+      // 59vh, so 59/50 beats is the duration at which they move as one. Measured:
+      // that holds the band at a constant ~110px from the strip's first frame to
+      // its dock. At a flat 1 beat the strip outruns the card instead and closes
+      // the band to −13px, clipping the bottom of the Values drawing.
+      const TABLET_FOOTER_BEATS = 59 / 50
+      const footerStart = isDesktop ? 3 - riseDur : isTabletPortrait ? 1 : 2
+      const footerDur = isDesktop
+        ? riseDur
+        : isTabletPortrait
+          ? TABLET_FOOTER_BEATS
+          : 1
       // yPercent is relative to the strip's own height, so 100 parks it just
       // below the stage on both mobile branches.
       tl.to(footerRef.current, { yPercent: 0, duration: footerDur }, footerStart)
+      const footerEnd = footerStart + footerDur
+
+      // T3 — Values drifts up as the footer arrives, exactly like Mission and
+      // Vision before it, so the last handover carries the same motion as the
+      // two the reader has already seen.
+      //
+      // On tablet portrait the handover is over the moment the strip docks: the
+      // card's content is behind the navy by then, so every further pixel of
+      // drift only pulls it further up and REOPENS the band the strip just
+      // closed — a screen of bare card, and a third of the section's scroll
+      // spent showing it. So the drift stops with the strip. Same rate as
+      // Mission's and Vision's, just fewer beats of it, which makes the strip's
+      // dock the timeline's last frame; the section is shortened to match (see
+      // the render) so the scroll ends there too.
+      const driftBeats = isTabletPortrait ? footerEnd - 2 : 1
+      tl.to(
+        valuesRef.current,
+        { yPercent: DRIFT * driftBeats, duration: driftBeats },
+        2
+      )
 
       // Footer (last layer) settles docked; the sticky stage releases at the
       // section end, so the footer holds full-screen as the page bottom.
@@ -391,7 +426,9 @@ function MissionVisionValues() {
       // copy re-derives it on refresh.
       const stripStart = () => {
         const h = (footerRef.current.offsetHeight / stickyRef.current.offsetHeight) * 100
-        return atBeat(Math.min(3, footerStart + (footerDur * (100 - IN_VIEW_AT)) / h))()
+        return atBeat(
+          Math.min(beats, footerStart + (footerDur * (100 - IN_VIEW_AT)) / h)
+        )()
       }
       revealFooterPanel(
         [
@@ -416,7 +453,15 @@ function MissionVisionValues() {
     <>
       <section
         ref={sectionRef}
-        className="relative w-full h-[300vh] bg-[#E6EBF0]"
+        /* 300vh = a 100vh stage plus 200vh of scrub, which the timeline's 3
+           beats divide into 66.67vh each. Tablet portrait's timeline is shorter
+           — it ends when the footer strip docks at beat 2.18 rather than running
+           a full third beat of Values drifting out behind it (see T3) — so its
+           section is the same 66.67vh per beat over 2.18 beats: 100 + 145 =
+           245vh. Without this the scrub would simply stretch those 2.18 beats
+           across the full 200vh, slowing the whole cinematic down; with it the
+           pacing is identical and only the dead scroll at the end is gone. */
+        className="relative w-full h-[300vh] tablet:h-[245vh] bg-[#E6EBF0]"
         aria-label="Mission, vision, values"
       >
         <div
