@@ -287,7 +287,7 @@ function ProjectGallery({
       {images.length > 1 && (
         <div
           data-gallery-item
-          className="mt-8 md:mt-10 flex items-center justify-center gap-4"
+          className="mt-8 md:mt-10 flex items-center justify-center gap-2"
         >
           <button
             type="button"

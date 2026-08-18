@@ -57,7 +57,17 @@ function ProjectPage() {
           className="min-h-screen bg-[#E2EAF2] text-[#1C1F2A]"
           style={{ fontFamily: "'Season Sans-TRIAL', sans-serif" }}
         >
-          <ProjectSections sections={project.sections} project={project} />
+          {/* Keyed by slug: sections carry no CMS id, so their keys
+              (`type-index`) repeat across projects and React would otherwise
+              reuse the same instances when navigating project → project —
+              carrying over the open Location tab, the Gallery's scroll
+              position and the Showcase's slide. The key forces a fresh mount,
+              so every section opens at its first state. */}
+          <ProjectSections
+            key={slug}
+            sections={project.sections}
+            project={project}
+          />
         </main>
         {/* Closing CTA — same "Let's Talk" section the About page uses. */}
         <ContactSection />

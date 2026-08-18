@@ -252,7 +252,7 @@ function SubsidiariesPage() {
         viewport="min"
         bg="bg-navy"
         scale={isTablet ? 1 : undefined}
-        className="relative text-mist px-4 tablet:px-[24px] pt-[140px] tablet:pt-[128px] pb-24 tablet:pb-[91px] md:px-8 md:pt-[180px] md:pb-32"
+        className="relative text-mist px-4 tablet:px-[24px] pt-[140px] tablet:pt-[190px] pb-24 tablet:pb-[91px] md:px-8 md:pt-[180px] md:pb-32"
       >
         <div ref={revealRef} className="max-w-[1440px] mx-auto">
           <div className="text-center max-w-[356px] tablet:max-w-[500px] md:max-w-[695px] mx-auto">
