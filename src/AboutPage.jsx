@@ -255,7 +255,7 @@ function AboutPage() {
           </div>
         </section>
 
-        <section className="relative isolate bg-[#D7DEE6] px-[16px] pt-24 tablet:pt-[139px] md:pt-[195px] pb-24 tablet:pb-[91px] md:pb-32">
+        <section className="relative isolate bg-[#D7DEE6] px-[16px] tablet:px-[32px] md:px-[38px] pt-24 tablet:pt-[139px] md:pt-[195px] pb-24 tablet:pb-[91px] md:pb-32">
           {/* Full-bleed backdrop: the 1440 canvas centers once the zoom locks, so
               this 100vw layer (behind the content via -z) keeps the section colour
               reaching both viewport edges instead of guttering. `isolate` scopes the

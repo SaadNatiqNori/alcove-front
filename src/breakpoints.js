@@ -3,8 +3,12 @@
 // JS scale/branch logic, so CSS and JS can never disagree about which layout a
 // given viewport is showing.
 
-// Tailwind's historical `md:` value. Still the phone/desktop divider.
-export const DESKTOP_MIN = 768
+// The phone/desktop divider. The mobile layout owns everything up to and
+// including 480px, so the desktop layout starts one pixel above it. Touch
+// devices in portrait between here and 1024px still get the mobile layout via
+// TABLET_PORTRAIT_QUERY below, so this bound only decides what a mouse-driven
+// window (or a landscape phone) sees.
+export const DESKTOP_MIN = 481
 
 // Locked design-canvas width for tablet portrait. The mobile layout lays out
 // against this width and is then zoomed to fill the physical viewport, so the
@@ -29,7 +33,7 @@ export const TABLET_PORTRAIT_QUERY =
   `(min-width: ${DESKTOP_MIN}px) and (max-width: 1024px) and (orientation: portrait) and (pointer: coarse)`
 
 // "Show the desktop layout." Deliberately a comma-separated OR list rather than
-// `(min-width: 768px) and (not (...))`: if an older iPadOS Safari rejected the
+// `(min-width: 481px) and (not (...))`: if an older iPadOS Safari rejected the
 // Level 4 `not()`, the entire query would be invalid, `md:` would never match,
 // and EVERY screen would fall back to the mobile layout. This form uses only
 // universally supported syntax, so its worst case is a wrong breakpoint on one

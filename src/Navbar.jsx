@@ -8,7 +8,7 @@ import { cubicEase } from './easings'
 import { HERO_INTRO, offscreenAbove } from './motion'
 import { PROJECTS_DATA } from './projects'
 import { useProjects, useContent } from './api'
-import { useScale, useIsDesktop, useIsTabletPortrait } from './useScale'
+import { useScale, useIsDesktop, useIsTabletPortrait, useHasHover } from './useScale'
 import BurgerIcon from './BurgerIcon'
 import MobileMenu from './MobileMenu'
 
@@ -22,7 +22,7 @@ const NAVBAR_FALLBACK = {
   dropdownHeading: ['Projects', 'Portfolio'],
 }
 
-function ProjectsDropdown({ open, onClose, projects, heading, onMouseEnter, onMouseLeave }) {
+function ProjectsDropdown({ open, onClose, projects, heading, onMouseEnter, onMouseLeave, hasHover }) {
   const panelRef = useRef(null)
   const [shouldRender, setShouldRender] = useState(open)
   const [hoveredItem, setHoveredItem] = useState(null)
@@ -74,8 +74,8 @@ function ProjectsDropdown({ open, onClose, projects, heading, onMouseEnter, onMo
       style={{ fontFamily: "'Season Sans-TRIAL', sans-serif" }}
       role="dialog"
       aria-label="Projects portfolio"
-      onMouseEnter={onMouseEnter}
-      onMouseLeave={onMouseLeave}
+      onMouseEnter={hasHover ? onMouseEnter : undefined}
+      onMouseLeave={hasHover ? onMouseLeave : undefined}
     >
       <div className="flex flex-col navdesk:flex-row gap-[58px]">
         <div className="flex shrink-0 flex-col">
@@ -107,14 +107,14 @@ function ProjectsDropdown({ open, onClose, projects, heading, onMouseEnter, onMo
 
         <div
           className="flex-1 grid grid-cols-1 navdesk:grid-cols-3 gap-[44px]"
-          onMouseLeave={() => setHoveredItem(null)}
+          onMouseLeave={hasHover ? () => setHoveredItem(null) : undefined}
         >
           {projects.map((project, i) => (
             <Link
               key={`${project.slug}-${i}`}
               to={`/projects/${project.slug}`}
               onClick={() => onClose()}
-              onMouseEnter={() => setHoveredItem(i)}
+              onMouseEnter={hasHover ? () => setHoveredItem(i) : undefined}
               className={`group flex flex-col text-inherit no-underline transition-opacity duration-200 ${
                 hoveredItem !== null && hoveredItem !== i ? 'opacity-30' : ''
               }`}
@@ -152,6 +152,12 @@ function Navbar() {
   // which is what keeps the fixed-position dropdown anchored to the viewport.
   const isTabletPortrait = useIsTabletPortrait()
   const scale = isTabletPortrait ? 1 : rawScale
+  // Tablets get the desktop pill (navdesk starts at 481px) but have no hover, so
+  // every hover handler below is attached only where a real pointer exists —
+  // see useHasHover for why attaching them on touch breaks the first tap.
+  const hasHover = useHasHover()
+  const hoverProps = (onEnter, onLeave) =>
+    hasHover ? { onMouseEnter: onEnter, onMouseLeave: onLeave } : null
   const scaleHeader = isDesktop && scale !== 1
   const [projectsOpen, setProjectsOpen] = useState(false)
   const [menuOpen, setMenuOpen] = useState(false)
@@ -213,8 +219,11 @@ function Navbar() {
       if (panel && panel.contains(e.target)) return
       setProjectsOpen(false)
     }
-    document.addEventListener('mousedown', handleClick)
-    return () => document.removeEventListener('mousedown', handleClick)
+    // pointerdown, not mousedown: on touch the mouse events are synthesised and
+    // WebKit can withhold them, which would leave the panel open with no way to
+    // dismiss it by tapping the page.
+    document.addEventListener('pointerdown', handleClick)
+    return () => document.removeEventListener('pointerdown', handleClick)
   }, [projectsOpen])
 
   return (
@@ -240,8 +249,10 @@ function Navbar() {
           {nav.links.map((link) => (
             <li
               key={link.to}
-              onMouseEnter={() => setHoveredLink(link.to)}
-              onMouseLeave={() => setHoveredLink(null)}
+              {...hoverProps(
+                () => setHoveredLink(link.to),
+                () => setHoveredLink(null)
+              )}
             >
               <Link
                 to={link.to}
@@ -255,14 +266,16 @@ function Navbar() {
           ))}
           <li
             ref={projectsTriggerRef}
-            onMouseEnter={() => {
-              setHoveredLink('projects')
-              openProjects()
-            }}
-            onMouseLeave={() => {
-              setHoveredLink(null)
-              scheduleCloseProjects()
-            }}
+            {...hoverProps(
+              () => {
+                setHoveredLink('projects')
+                openProjects()
+              },
+              () => {
+                setHoveredLink(null)
+                scheduleCloseProjects()
+              }
+            )}
           >
             <button
               type="button"
@@ -286,8 +299,10 @@ function Navbar() {
 
         <Link
           to="/contact"
-          onMouseEnter={() => setHoveredLink('contact')}
-          onMouseLeave={() => setHoveredLink(null)}
+          {...hoverProps(
+            () => setHoveredLink('contact'),
+            () => setHoveredLink(null)
+          )}
           className="hidden navdesk:inline-flex h-9 items-center whitespace-nowrap rounded-[22px] border border-transparent bg-mist px-[10px] font-['Akkurat_Mono',monospace] text-[10px] font-medium uppercase leading-none tracking-[0] text-[#191f2f] no-underline gap-[10px] transition-colors duration-300 ease-out hover:bg-transparent hover:border-mist hover:text-mist"
         >
           <p className="m-0 font-['Akkurat_Mono',monospace] relative top-[1px]">{nav.contactLabel}</p>
@@ -311,6 +326,7 @@ function Navbar() {
         onClose={() => setProjectsOpen(false)}
         projects={dropdownProjects}
         heading={nav.dropdownHeading}
+        hasHover={hasHover}
         onMouseEnter={openProjects}
         onMouseLeave={scheduleCloseProjects}
       />
