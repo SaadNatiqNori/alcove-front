@@ -223,25 +223,40 @@ function PortfolioSlider() {
   // so its width is the natural aspect, then set the card width to that image
   // width plus the horizontal padding (the "x margin"). The title/description
   // then wrap to the image width instead of stretching the card wider.
+  //
+  // The fixed height is the point: every uploaded elevation is drawn on the same
+  // 601-high canvas with its ground line on the bottom edge, so drawing them all
+  // at one height is what puts them on one ground line — and at one scale —
+  // across the cards. Fitting the card to the image is what lets that height be
+  // honoured without a wide drawing overflowing its card.
   const IMG_HEIGHT = 150
   const CARD_PAD_X = 38 // matches the card's px-[38px] (both sides = 76)
+  // The tablet carousel runs the same fit on its own canvas, so both numbers are
+  // iPad-frame values times the layout's 430/800 = 0.5375 (see TABLET_REF).
+  const TABLET_IMG_HEIGHT = 64.5 // 120 frame px
+  const TABLET_PAD_X = 15.28 // matches the card's tablet:px-[15.28px]
   const fitCardToImage = (img) => {
     if (!img) return
     const apply = () => {
       const card = img.closest('article')
       if (!card) return
-      // On mobile the cards are full-width (w-full); clear any pixel width a
-      // previous desktop fit left behind. `isMobile` is read from render scope,
-      // and this ref callback re-runs on every render (fresh identity), so a
-      // breakpoint change re-applies the correct width.
-      if (isMobile) {
+      // On the phone stack the cards are full-width (w-full); clear any pixel
+      // width a previous carousel fit left behind. The layout predicates are
+      // read from render scope, and this ref callback re-runs on every render
+      // (fresh identity), so a breakpoint change re-applies the correct width.
+      if (isMobile && !isTablet) {
         card.style.width = ''
         return
       }
       const { naturalWidth: nw, naturalHeight: nh } = img
       if (!nw || !nh) return
-      const imgW = IMG_HEIGHT * (nw / nh)
-      card.style.width = `${Math.round(Math.max(imgW, 340)) + CARD_PAD_X * 2}px`
+      const h = isTablet ? TABLET_IMG_HEIGHT : IMG_HEIGHT
+      const padX = isTablet ? TABLET_PAD_X : CARD_PAD_X
+      // Floor so a narrow drawing still leaves the title and description a card
+      // to wrap in rather than squeezing them into the illustration's width.
+      const minW = isTablet ? 182.75 : 340
+      const imgW = h * (nw / nh)
+      card.style.width = `${Math.round(Math.max(imgW, minW) + padX * 2)}px`
     }
     if (img.complete && img.naturalWidth) apply()
     else img.addEventListener('load', apply, { once: true })
@@ -594,7 +609,11 @@ function PortfolioSlider() {
             <div
               ref={scrollRef}
               data-horizontal-scroll
-              className="flex flex-col md:flex-row tablet:flex-row items-stretch gap-4 tablet:gap-[2.7px] md:gap-2 px-4 tablet:pr-0 md:pl-[38px] md:pr-2 tablet:overflow-x-auto tablet:overflow-y-hidden md:overflow-x-auto md:overflow-y-hidden md:cursor-grab select-none [&::-webkit-scrollbar]:hidden"
+              // tablet:pr-4 mirrors the left gutter at the END of the track: on
+              // a scroll container the trailing padding is only visible once the
+              // last card is reached, so the cards still run to the viewport
+              // edge mid-scroll and only come to rest clear of it.
+              className="flex flex-col md:flex-row tablet:flex-row items-stretch gap-4 tablet:gap-[2.7px] md:gap-2 px-4 tablet:pr-4 md:pl-[38px] md:pr-2 tablet:overflow-x-auto tablet:overflow-y-hidden md:overflow-x-auto md:overflow-y-hidden md:cursor-grab select-none [&::-webkit-scrollbar]:hidden"
               style={{
                 scrollbarWidth: 'none',
                 WebkitOverflowScrolling: 'touch',
@@ -645,11 +664,12 @@ function PortfolioSlider() {
                 <article
                   key={project.slug}
                   data-reveal
-                  // tablet: 427.98 frame px wide, so the 430 canvas shows 1.87
-                  // of them — one whole card and most of the next, the cut-off
-                  // card being what says the row scrolls. The 52.36 frame-px
-                  // gap separates all three rows (title block, cover, button),
-                  // which is what makes the card come out at its 397.42 height.
+                  // tablet: 427.98 frame px wide (230 canvas px) is only the
+                  // width the card starts at — like desktop, fitCardToImage
+                  // then sizes it to its own illustration, so the row shows
+                  // between one and two cards and the cut-off card is what says
+                  // it scrolls. The 52.36 frame-px gap separates all three rows
+                  // (title block, cover, button).
                   className="flex-shrink-0 w-full tablet:w-[230px] md:w-[496px] bg-navy px-6 tablet:px-[15.28px] py-8 tablet:py-[16.08px] md:px-[38px] md:py-10 flex flex-col gap-10 tablet:gap-[28.14px] md:gap-[70px] text-mist"
                 >
                   <div>
@@ -664,7 +684,7 @@ function PortfolioSlider() {
                       // 371.13 content width, four lines deep — the 50-high
                       // text box of the frame, not the two-line clamp the
                       // narrower phone card uses.
-                      className="mt-[18px] tablet:mt-[4.78px] text-[12px] tablet:text-[5.91px] leading-4 tablet:leading-[6.72px] tablet:max-w-[162px] text-mist line-clamp-2 tablet:line-clamp-4"
+                      className="mt-[18px] tablet:mt-[4.78px] text-[12px] tablet:text-[5.91px] leading-4 tablet:leading-[6.72px] max-w-[420px] tablet:max-w-[162px] text-mist line-clamp-2 tablet:line-clamp-2"
                       style={{ fontFamily: "'Season Sans-TRIAL', sans-serif" }}
                     >
                       {project.short || project.description}
@@ -683,11 +703,15 @@ function PortfolioSlider() {
                         alt={project.title}
                         draggable={false}
                         ref={fitCardToImage}
-                        // tablet: 371.13x120 frame px — the full content width
-                        // of the card. That is the same 3.09:1 as the phone's
-                        // 317.91x102.79 box, so object-contain leaves no dead
-                        // space at either size.
-                        className="h-[102.79px] w-full tablet:h-[64.5px] tablet:w-full object-contain md:h-[150px] md:w-auto md:max-w-none"
+                        // Both carousels draw the illustration at their fixed
+                        // height and take its natural width, with the card
+                        // fitted around it (fitCardToImage) — that is what puts
+                        // every drawing at one scale, on one ground line. The
+                        // phone stack can't do that (its cards are all the same
+                        // full-bleed width), so there the image fits the width
+                        // and `object-bottom` keeps it standing on the floor of
+                        // its box instead of floating mid-air.
+                        className="h-[102.79px] w-full object-contain object-bottom tablet:h-[64.5px] tablet:w-auto tablet:max-w-none md:h-[150px] md:w-auto md:max-w-none"
                       />
                     ) : (
                       <ProjectIllustration variant={i % 4} />
