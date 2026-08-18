@@ -25,6 +25,30 @@ html.lenis body {
   pointer-events: none;
 }
 
+/* One viewport-height unit for boxes that must fit ON SCREEN rather than fill
+   the nominal viewport.
+
+   `vh` is the LARGE viewport on iOS/iPadOS Safari — the height the page would
+   have if the toolbars were retracted. The toolbars are NOT retracted at load,
+   so a `100vh` box is ~60-100px taller than what the user can actually see, and
+   whatever sits at its bottom edge starts life under the browser chrome. Every
+   engine we can emulate (desktop Chrome/Safari, Playwright) has no collapsing
+   chrome, so there `vh === svh` and this is a no-op — the discrepancy only
+   exists on a real phone or iPad, which is why it survived so long.
+
+   `svh` is the small viewport: the height with the toolbars SHOWN. Static like
+   `vh` (so it never jitters mid-scroll the way `dvh` does), but it is the
+   height that is genuinely visible at load. Anything that must not be clipped
+   by the bottom edge should be measured in this. */
+:root {
+  --hero-vh: 1vh;
+}
+@supports (height: 1svh) {
+  :root {
+    --hero-vh: 1svh;
+  }
+}
+
 /* Hide the scrollbar on horizontal card sliders (e.g. the mobile projects
    strip) while keeping native scroll/drag. */
 .no-scrollbar {

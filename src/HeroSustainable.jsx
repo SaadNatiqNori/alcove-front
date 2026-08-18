@@ -133,7 +133,12 @@ function HeroSustainable() {
 
   return (
     <section
-      className="relative w-full h-screen overflow-hidden bg-[#E2EAF2]"
+      // tablet: sized in `--hero-vh` (svh) rather than `vh`, because on iPadOS
+      // Safari `100vh` is the toolbars-retracted height. At load the toolbars
+      // are showing, so a 100vh hero runs ~60-100px past the bottom of the
+      // screen — and everything in here is anchored to that bottom edge, so the
+      // wordmark spent that band underneath the browser chrome. See --hero-vh.
+      className="relative w-full h-screen tablet:h-[calc(100*var(--hero-vh))] overflow-hidden bg-[#E2EAF2]"
       aria-label="Hero"
     >
       <div
@@ -143,7 +148,11 @@ function HeroSustainable() {
           transformOrigin: 'top center',
           width: isDesktop && scale >= 1 ? '100%' : `${100 / scale}%`,
           marginLeft: isDesktop && scale >= 1 ? '0' : `${(100 - 100 / scale) / 2}%`,
-          height: `${100 / scale}vh`,
+          // Must track the section's own height above, or `main`'s tablet
+          // `h-full` resolves against a box taller than the screen.
+          height: isTabletPortrait
+            ? `calc(${100 / scale} * var(--hero-vh))`
+            : `${100 / scale}vh`,
           // Exposed for consistency with the other scaled sections, which use it
           // to convert viewport units into canvas px. Nothing in this section
           // reads it any more: both the phone and the iPad top padding are flat
@@ -173,12 +182,16 @@ function HeroSustainable() {
           // compressible), so it only fits the full 1194px artboard. A real iPad
           // in Safari gives ~950-1060px of canvas once the address bar and tab
           // strip are out, and the overflow came off the BOTTOM — the wordmark
-          // was clipped by the section's overflow-hidden. The vh terms are the
+          // was clipped by the section's overflow-hidden. The terms are the
           // design px over the 1194px reference canvas (238.88/1194 = 20.007%,
           // 41.4/1194 = 3.467%), so both are exact at the artboard height and
           // yield space proportionally on anything shorter. Pairs with the
           // description→card gap, which is clamped the same way.
-          className="relative h-screen tablet:h-full lg:h-full max-w-[1440px] mx-auto flex flex-col bg-[#E2EAF2] px-4 tablet:px-[39.83px] max-md:pb-[40px] tablet:[padding-bottom:min(41.4px,3.467vh)] max-md:[padding-top:min(196px,21.031vh)] tablet:[padding-top:min(238.88px,20.007vh)] text-[#1C2D4F] md:px-[38px] md:pb-[40px] md:pt-[200.69px]"
+          // They are counted in `--hero-vh`, not `vh`: plain `vh` on iPadOS is
+          // the toolbars-retracted height, which reports the full 1194 on a
+          // device that is really showing ~1050 — so the clamps measured a
+          // canvas that was never on screen and yielded nothing.
+          className="relative h-screen tablet:h-full lg:h-full max-w-[1440px] mx-auto flex flex-col bg-[#E2EAF2] px-4 tablet:px-[39.83px] max-md:pb-[40px] tablet:[padding-bottom:min(41.4px,calc(3.467*var(--hero-vh)))] max-md:[padding-top:min(196px,21.031vh)] tablet:[padding-top:min(238.88px,calc(20.007*var(--hero-vh)))] text-[#1C2D4F] md:px-[38px] md:pb-[40px] md:pt-[200.69px]"
         >
           {/* tablet: this column takes all the leftover height (`flex-1`) and the
               description block inside it is pushed to the bottom with `mt-auto`,
@@ -236,7 +249,7 @@ function HeroSustainable() {
                   above its dot and cap line. */}
               {isTabletPortrait &&
                 featuredCard(
-                  'relative z-10 flex [margin-top:min(96px,8.04vh)] w-[257.19px] flex-col gap-[23.19px] rounded-[4.53px] px-[13.6px] pt-[17.66px] pb-[19.26px] bg-[#13294B]/10 backdrop-blur-[50px] group transition-[backdrop-filter,background-color] duration-[600ms] ease-[cubic-bezier(0.22,1,0.36,1)] hover:bg-[#13294B]/20 hover:backdrop-blur-[100px]'
+                  'relative z-10 flex [margin-top:min(96px,calc(8.04*var(--hero-vh)))] w-[257.19px] flex-col gap-[23.19px] rounded-[4.53px] px-[13.6px] pt-[17.66px] pb-[19.26px] bg-[#13294B]/10 backdrop-blur-[50px] group transition-[backdrop-filter,background-color] duration-[600ms] ease-[cubic-bezier(0.22,1,0.36,1)] hover:bg-[#13294B]/20 hover:backdrop-blur-[100px]'
                 )}
             </div>
           </div>
