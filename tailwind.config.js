@@ -13,9 +13,9 @@ export default {
     theme: {
         extend: {
             // Overrides only `md` and `lg`; `sm`, `xl` and `2xl` keep their
-            // defaults. `sm:` (640px) is intentionally left alone — it already
-            // applies to 640-767px phones, so tablet portrait inheriting it is
-            // consistent with existing mobile behaviour.
+            // defaults. `sm:` (640px) is intentionally left alone — it now sits
+            // above the mobile layout's 480px ceiling, so it no longer matches a
+            // phone at all: it applies to tablet portrait and desktop only.
             screens: {
                 md: { raw: DESKTOP_QUERY },
                 lg: { raw: LG_QUERY },

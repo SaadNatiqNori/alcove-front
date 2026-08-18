@@ -12,7 +12,7 @@ export const MAX_SCALE = 1.3
 //                    default). The mobile layout lays out on that locked canvas
 //                    and zooms to fill the width, so an iPad gets the phone
 //                    design's proportions rather than the same layout stretched
-//                    thin. Checked FIRST because these viewports are all >= 768
+//                    thin. Checked FIRST because these viewports are all >= 481
 //                    and would otherwise be read as desktop.
 //   desktop          scale = width / referenceWidth, capped at MAX_SCALE.
 //                    Unchanged, DPR guard included.
@@ -21,7 +21,7 @@ export const MAX_SCALE = 1.3
 //
 // The DPR ratio keeps browser zoom from being double-counted at the desktop
 // threshold: window.innerWidth already shrinks under zoom, so comparing the
-// raw value against 768 would flip a zoomed-in desktop into the mobile branch.
+// raw value against 481 would flip a zoomed-in desktop into the mobile branch.
 function computeScale(referenceWidth, mobileReferenceWidth, initialDPR, tabletReferenceWidth) {
   const width = window.innerWidth
 
@@ -165,6 +165,28 @@ export function useIsDesktop() {
     return () => mq.removeEventListener('change', onChange)
   }, [])
   return isDesktop
+}
+
+// True only on a pointer that can genuinely hover (mouse, trackpad). Touch
+// screens report `hover: none` and synthesise the mouse events from a tap:
+// mouseenter fires immediately before the click of that SAME tap. Any UI that
+// opens on hover and toggles on click therefore opens and shuts again on the
+// first tap, and WebKit additionally withholds the click of a tap whose hover
+// handlers changed the page. Components read this to attach their hover
+// handlers only where a hover exists, leaving touch to drive the same UI from
+// the click alone.
+export function useHasHover() {
+  const [hasHover, setHasHover] = useState(() =>
+    typeof window !== 'undefined' ? window.matchMedia('(hover: hover)').matches : true
+  )
+  useEffect(() => {
+    const mq = window.matchMedia('(hover: hover)')
+    const onChange = () => setHasHover(mq.matches)
+    setHasHover(mq.matches)
+    mq.addEventListener('change', onChange)
+    return () => mq.removeEventListener('change', onChange)
+  }, [])
+  return hasHover
 }
 
 // True on iPad portrait — the JS counterpart of the CSS `tablet:` variant, for

@@ -513,6 +513,11 @@ function ContactPage() {
               // reads as a cross with the center vertical line.
               const notLastRow =
                 Math.floor(i / 2) < Math.ceil(details.length / 2) - 1
+              // Same idea on the three-column tablet grid: the row gap between
+              // the first three cards and the two below needs its own line, or
+              // the bottom row reads as detached from the frame.
+              const notLastRowTablet =
+                Math.floor(i / 3) < Math.ceil(details.length / 3) - 1
               return (
                 <div
                   key={col.label}
@@ -523,6 +528,15 @@ function ContactPage() {
                     <span
                       aria-hidden="true"
                       className="pointer-events-none absolute inset-x-0 -bottom-7 h-px tablet:hidden md:hidden"
+                      style={{ backgroundImage: DASH_H }}
+                    />
+                  )}
+                  {notLastRowTablet && (
+                    <span
+                      aria-hidden="true"
+                      // -inset-x-2 bridges the 16px column gap so the three
+                      // segments read as one continuous line edge to edge.
+                      className="pointer-events-none absolute -inset-x-2 -bottom-5 hidden h-px tablet:block md:hidden"
                       style={{ backgroundImage: DASH_H }}
                     />
                   )}

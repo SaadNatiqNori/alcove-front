@@ -687,7 +687,7 @@ function PortfolioSlider() {
                         // of the card. That is the same 3.09:1 as the phone's
                         // 317.91x102.79 box, so object-contain leaves no dead
                         // space at either size.
-                        className="h-[102.79px] w-[317.91px] tablet:h-[64.5px] tablet:w-full object-contain md:h-[150px] md:w-auto md:max-w-none"
+                        className="h-[102.79px] w-full tablet:h-[64.5px] tablet:w-full object-contain md:h-[150px] md:w-auto md:max-w-none"
                       />
                     ) : (
                       <ProjectIllustration variant={i % 4} />
