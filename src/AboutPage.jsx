@@ -262,12 +262,15 @@ function AboutPage() {
               -z layer to this section — CSS `zoom` (unlike transform) makes no
               stacking context, so without it the -z layer sinks behind the page bg. */}
           <div aria-hidden className="pointer-events-none absolute inset-y-0 left-1/2 -z-10 -translate-x-1/2 bg-[#D7DEE6]" style={{ width: 'var(--bleed)' }} />
-          {/* tablet: the measure, not the canvas, is the constraint here — the
-              paragraphs would otherwise run the full 1024 (~82 characters a
-              line). 720 is the Goals block's width, so the two reading columns
-              share a left edge down the page. */}
-          <div className="flex flex-col gap-10 tablet:gap-12 md:flex-row md:gap-[208px] max-w-[var(--content-width)] tablet:max-w-[720px] mx-auto">
-            <div className="shrink-0 md:sticky md:top-[140px] md:self-start md:w-[259px]">
+          {/* tablet runs the desktop two-column shape (title beside the text,
+              not above it) rather than the stacked mobile one — an iPad has the
+              width for it, and this page lays out in true CSS px there, so the
+              column just needs tablet-sized numbers. The wrapper drops its 720
+              cap because the measure is now set by the text column alone: the
+              full width minus the title column and the gap, i.e. 458–714px
+              across iPad mini → Pro 12.9". */}
+          <div className="flex flex-col gap-10 tablet:flex-row tablet:gap-[56px] md:flex-row md:gap-[208px] max-w-[var(--content-width)] mx-auto">
+            <div className="shrink-0 tablet:sticky tablet:top-[100px] tablet:self-start tablet:w-[190px] md:sticky md:top-[140px] md:self-start md:w-[259px]">
               <h2
                   className="m-0 text-[18px] tablet:text-[20px] md:text-[28px] leading-none tracking-[-0.5px] tablet:tracking-[-0.8px] md:tracking-[-1.12px] text-navy"
                 style={{ fontFamily: "'Season Sans-TRIAL', sans-serif", fontWeight: 550 }}
@@ -277,7 +280,7 @@ function AboutPage() {
                 {why.title[1]}
               </h2>
             </div>
-            <div data-reveal-group className="space-y-12 tablet:space-y-[46px] md:w-[780px] md:space-y-16">
+            <div data-reveal-group className="space-y-12 tablet:flex-1 tablet:space-y-[46px] md:w-[780px] md:space-y-16">
               {why.paragraphs.map((p, i) => (
                 <p
                   key={i}

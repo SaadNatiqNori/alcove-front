@@ -164,13 +164,21 @@ function HeroSustainable() {
           // px, so it renders as 40 × width/430, matching the footer's
           // min(40px, 9.3023vw) (see ContactFooterPanel). Flat, not vh-clamped:
           // the top padding is the one that yields space on short screens.
-          // tablet: flat canvas px off the 834x1194 artboard — 39.83px gutters,
-          // and 238.88px of top pad, which is the design's 255.14px cap line less
-          // the 16.26px the 77px headline's line box adds above its caps. Flat
-          // rather than vh-clamped because the iPad canvas heights only span
-          // 1112-1200px and the headline→description gap (which grows with the
-          // canvas, see below) absorbs the whole spread on its own.
-          className="relative h-full max-w-[1440px] mx-auto flex flex-col bg-[#E2EAF2] px-4 tablet:px-[39.83px] max-md:pb-[40px] tablet:pb-[41.4px] max-md:[padding-top:min(196px,21.031vh)] tablet:[padding-top:238.88px] text-[#1C2D4F] md:px-[38px] md:pb-[40px] md:pt-[200.69px]"
+          // tablet: canvas px off the 834x1194 artboard — 39.83px gutters, and
+          // 238.88px of top pad, which is the design's 255.14px cap line less the
+          // 16.26px the 77px headline's line box adds above its caps.
+          // Both tablet pads are min(designPx, equivalent-vh) for the same reason
+          // the mobile ones are: the tablet stack below the top pad is a fixed
+          // ~810px (headline + description column + card + wordmark, none of it
+          // compressible), so it only fits the full 1194px artboard. A real iPad
+          // in Safari gives ~950-1060px of canvas once the address bar and tab
+          // strip are out, and the overflow came off the BOTTOM — the wordmark
+          // was clipped by the section's overflow-hidden. The vh terms are the
+          // design px over the 1194px reference canvas (238.88/1194 = 20.007%,
+          // 41.4/1194 = 3.467%), so both are exact at the artboard height and
+          // yield space proportionally on anything shorter. Pairs with the
+          // description→card gap, which is clamped the same way.
+          className="relative h-full max-w-[1440px] mx-auto flex flex-col bg-[#E2EAF2] px-4 tablet:px-[39.83px] max-md:pb-[40px] tablet:[padding-bottom:min(41.4px,3.467vh)] max-md:[padding-top:min(196px,21.031vh)] tablet:[padding-top:min(238.88px,20.007vh)] text-[#1C2D4F] md:px-[38px] md:pb-[40px] md:pt-[200.69px]"
         >
           {/* tablet: this column takes all the leftover height (`flex-1`) and the
               description block inside it is pushed to the bottom with `mt-auto`,
@@ -217,14 +225,18 @@ function HeroSustainable() {
                   UNDER the letters — the "OVE" drew over it. The wrapper has no
                   z-index of its own, so z-10 is enough to sit the card on top.
                   mt: the design's 100px description→card gap, less the 4px the
-                  16px/20px description's last line box hangs below its baseline.
+                  16px/20px description's last line box hangs below its baseline —
+                  clamped to its share of the 1194px reference canvas (96/1194 =
+                  8.04%) so it gives up height on a short iPad canvas alongside
+                  the two pads on <main>, rather than pushing the wordmark off
+                  the bottom edge.
                   gap: the 27.19px card-title→illustration gap, less the 4px that
                   title's line box hangs below ITS baseline. pt/pb are the single
                   19.26px padding, the top one less the 1.6px the label row keeps
                   above its dot and cap line. */}
               {isTabletPortrait &&
                 featuredCard(
-                  'relative z-10 flex mt-[96px] w-[257.19px] flex-col gap-[23.19px] rounded-[4.53px] px-[13.6px] pt-[17.66px] pb-[19.26px] bg-[#13294B]/10 backdrop-blur-[50px] group transition-[backdrop-filter,background-color] duration-[600ms] ease-[cubic-bezier(0.22,1,0.36,1)] hover:bg-[#13294B]/20 hover:backdrop-blur-[100px]'
+                  'relative z-10 flex [margin-top:min(96px,8.04vh)] w-[257.19px] flex-col gap-[23.19px] rounded-[4.53px] px-[13.6px] pt-[17.66px] pb-[19.26px] bg-[#13294B]/10 backdrop-blur-[50px] group transition-[backdrop-filter,background-color] duration-[600ms] ease-[cubic-bezier(0.22,1,0.36,1)] hover:bg-[#13294B]/20 hover:backdrop-blur-[100px]'
                 )}
             </div>
           </div>

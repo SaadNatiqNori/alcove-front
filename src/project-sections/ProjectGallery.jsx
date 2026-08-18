@@ -277,7 +277,7 @@ function ProjectGallery({
               // Every photo in a breakpoint is the same height and as wide as
               // its own aspect ratio makes it — variable widths, and no crop.
               // `w-auto` is what lets the intrinsic ratio set the width.
-              className="block h-[193px] tablet:h-[440px] md:h-[440px] w-auto object-contain"
+              className="block h-[228px] tablet:h-[440px] md:h-[440px] w-auto object-contain"
               draggable="false"
             />
           </div>
@@ -294,18 +294,18 @@ function ProjectGallery({
             onClick={() => scrollByOne(-1)}
             disabled={atStart}
             aria-label="Previous image"
-            className="inline-flex h-[52px] w-[52px] items-center justify-center rounded-full border border-white/25 text-mist transition-colors duration-200 hover:border-white/70 disabled:opacity-30 disabled:hover:border-white/25"
+            className="inline-flex h-[42px] w-[42px] tablet:h-[52px] tablet:w-[52px] md:h-[52px] md:w-[52px] items-center justify-center rounded-full border border-white/25 text-mist transition-colors duration-200 hover:border-white/70 disabled:opacity-30 disabled:hover:border-white/25"
           >
-            <IoArrowBack className="text-[18px]" aria-hidden="true" />
+            <IoArrowBack className="text-[15px] tablet:text-[18px] md:text-[18px]" aria-hidden="true" />
           </button>
           <button
             type="button"
             onClick={() => scrollByOne(1)}
             disabled={atEnd}
             aria-label="Next image"
-            className="inline-flex h-[52px] w-[52px] items-center justify-center rounded-full border border-white/25 text-mist transition-colors duration-200 hover:border-white/70 disabled:opacity-30 disabled:hover:border-white/25"
+            className="inline-flex h-[42px] w-[42px] tablet:h-[52px] tablet:w-[52px] md:h-[52px] md:w-[52px] items-center justify-center rounded-full border border-white/25 text-mist transition-colors duration-200 hover:border-white/70 disabled:opacity-30 disabled:hover:border-white/25"
           >
-            <IoArrowForward className="text-[18px]" aria-hidden="true" />
+            <IoArrowForward className="text-[15px] tablet:text-[18px] md:text-[18px]" aria-hidden="true" />
           </button>
         </div>
       )}
