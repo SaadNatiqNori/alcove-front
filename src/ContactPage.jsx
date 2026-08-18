@@ -453,9 +453,16 @@ function ContactPage() {
           exact 2px-on / 2px-off, 1px stroke. */}
       {/* tablet: the same closed dashed rectangle as desktop, not the phone's
           two-column cross — but on three columns (see DIVIDERS_TABLET), with the
-          frame inset dropped from desktop's 145px to 40px. */}
+          frame inset dropped from desktop's 145px to 40px. Text is centered
+          rather than left-aligned: three columns are wide enough that a
+          left-aligned block leaves the cell looking half empty. */}
       <footer ref={footerRef} className="px-4 tablet:px-[40px] md:px-[145px] pb-[137px] tablet:pb-[97px]">
-        <div className="relative w-full py-12 tablet:py-16 md:py-16">
+        {/* tablet: the vertical inset must stay exactly half the grid's row gap
+            (py-10 = 40px against gap-y-20 = 80px). The row divider is painted in
+            the middle of that gap, so any other ratio makes the band above row 1
+            taller than the band below it and every cell's content reads low
+            inside its dashed box even though it is centered in its grid cell. */}
+        <div className="relative w-full py-12 tablet:py-10 md:py-16">
           {/* top + bottom frame lines — overshoot the outer verticals by 10px
               so the corners read as crossings, not closed joins */}
           <span
@@ -506,7 +513,7 @@ function ContactPage() {
             />
           ))}
 
-          <div className="grid grid-cols-2 gap-x-0 gap-y-14 tablet:grid-cols-3 tablet:gap-x-4 tablet:gap-y-10 md:grid-cols-5 md:gap-x-4 md:gap-y-0">
+          <div className="grid grid-cols-2 gap-x-0 gap-y-14 tablet:grid-cols-3 tablet:gap-x-4 tablet:gap-y-20 md:grid-cols-5 md:gap-x-4 md:gap-y-0">
             {details.map((col, i) => {
               // Mobile draws a horizontal divider centered in the row gap below
               // every cell that isn't in the last row, so the two-column grid
@@ -522,7 +529,7 @@ function ContactPage() {
                 <div
                   key={col.label}
                   data-col
-                  className="relative flex h-[213px] flex-col items-center justify-center px-4 text-center tablet:h-auto tablet:items-start tablet:px-[10px] tablet:text-left md:h-auto md:items-start md:px-[30px] md:text-left"
+                  className="relative flex h-[213px] flex-col items-center justify-center px-4 text-center tablet:h-auto tablet:items-center tablet:px-[10px] tablet:text-center md:h-auto md:items-start md:px-[30px] md:text-left"
                 >
                   {notLastRow && (
                     <span
@@ -536,7 +543,7 @@ function ContactPage() {
                       aria-hidden="true"
                       // -inset-x-2 bridges the 16px column gap so the three
                       // segments read as one continuous line edge to edge.
-                      className="pointer-events-none absolute -inset-x-2 -bottom-5 hidden h-px tablet:block md:hidden"
+                      className="pointer-events-none absolute -inset-x-2 -bottom-10 hidden h-px tablet:block md:hidden"
                       style={{ backgroundImage: DASH_H }}
                     />
                   )}
