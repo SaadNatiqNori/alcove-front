@@ -90,8 +90,16 @@ function ContactFooterPanel({
   // cap-trimmed "Let's talk" line box starts at the panel's top edge and the
   // section's overflow-hidden shaves the caps off. The bottom gap is shared (it
   // pairs the wordmark with the hero's, see MOBILE_ALCOVE_* above).
+  // The 111px inset is authored against the phone's 553px strip. iPad portrait
+  // runs the same strip at 59vh (~704px on an 11"), and all ~150px of that extra
+  // height used to collect in the single slack below the block, leaving it
+  // sitting high with a void above the wordmark. There the inset is dropped and
+  // the block is centred between the panel top and the logo instead — the same
+  // rule the desktop centerDesktop branch uses, via the matching tablet spacer
+  // above it. Strip height and rise timing are untouched, so the MissionVision
+  // Values handover is unaffected.
   const mobilePad = fillMobile
-    ? 'pt-[111px] max-md:[padding-bottom:min(40px,9.3023vw)]'
+    ? 'pt-[111px] tablet:pt-0 max-md:[padding-bottom:min(40px,9.3023vw)]'
     : 'max-md:pt-[72px] max-md:[padding-bottom:min(40px,9.3023vw)]'
   const mainClass = centerDesktop
     ? `relative ${mobileH} md:h-full max-w-[1440px] mx-auto flex flex-col bg-navy px-[16px] ${mobilePad} text-mist md:px-8 md:pb-[31px] md:pt-0`
@@ -117,8 +125,18 @@ function ContactFooterPanel({
   return (
     <main ref={rootRef} className={mainClass} style={mainStyle}>
       {/* Top spacer: grows equally with the bottom spacer to centre the block
-          between the container top and the logo. md+ only. */}
-      {centerDesktop && <div aria-hidden className="hidden md:block md:flex-1" />}
+          between the container top and the logo. md+ only — plus iPad portrait's
+          taller strip, where it pairs with the mobile slack below to centre the
+          block the same way (see mobilePad). The phone strip keeps its fixed
+          111px inset. */}
+      {centerDesktop && (
+        <div
+          aria-hidden
+          className={`hidden md:block md:flex-1${
+            fillMobile ? ' tablet:block tablet:flex-1' : ''
+          }`}
+        />
+      )}
       {/* An auto margin here would swallow the mobile slack before the spacer
           below it ever grows, so filling the strip drops it and lets the block
           sit at its 111px top inset. */}
