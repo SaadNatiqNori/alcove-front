@@ -182,8 +182,14 @@ function ProjectGallery({
       // clientWidth includes the padding we are about to set, but border-box
       // sizing keeps the element's own width fixed, so this cannot feed back.
       const room = el.clientWidth
-      const left = Math.max(0, (room - slides[0].offsetWidth) / 2)
-      const right = Math.max(0, (room - slides[slides.length - 1].offsetWidth) / 2)
+      // Floored at the slide gap, not at 0: on a phone the photos are wider
+      // than the screen, so the centring maths goes negative and a bare
+      // `max(0, …)` leaves the first slide flush against the edge, reading as a
+      // crop rather than a slide. The gap between slides doubles as that
+      // minimum gutter, so the edge keeps the track's own rhythm. Above phone
+      // widths both values are far larger than the gap and nothing changes.
+      const left = Math.max(gap, (room - slides[0].offsetWidth) / 2)
+      const right = Math.max(gap, (room - slides[slides.length - 1].offsetWidth) / 2)
       setPadX((prev) =>
         prev && prev.left === left && prev.right === right ? prev : { left, right },
       )
@@ -194,7 +200,7 @@ function ProjectGallery({
     ro.observe(el)
     el.querySelectorAll('[data-gallery-slide]').forEach((slide) => ro.observe(slide))
     return () => ro.disconnect()
-  }, [images.length])
+  }, [images.length, gap])
 
   // Prev/next centre the neighbouring slide, in the element's own unscaled
   // pixels (offsetWidth/offsetLeft are layout px, not transformed). Stepping by
