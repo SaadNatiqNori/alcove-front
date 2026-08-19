@@ -2,7 +2,7 @@ import { useEffect, useLayoutEffect, useRef } from 'react'
 import { createPortal } from 'react-dom'
 import { gsap } from 'gsap'
 import { cubicEase } from '../easings'
-import ArrowIcon from '../ArrowIcon'
+import viewImageIcon from '../assets/ViewimageIcon.svg'
 
 // A small badge that replaces the pointer while it is over an expandable photo.
 // Follows the cursor with an eased lag, the same quickTo treatment as the
@@ -69,13 +69,16 @@ function HoverCursor({ active, label = 'VIEW IMAGE' }) {
       {/* Centred on the cursor via its own transform — the wrapper's transform
           is owned by GSAP, so the offset cannot live there.
           Geometry and type are the portfolio DISCOVER button's desktop values
-          (height, radius, px-[14px], gap-[5px], 10px Akkurat Mono, 14px
-          ArrowIcon), filled in the brand tokens instead of outlined. Only the
-          desktop values apply — the badge is hover-driven, so it never renders
-          on the tablet layout those `tablet:` sizes exist for. */}
+          (height, radius, px-[14px], gap-[5px], 10px Akkurat Mono, 14px icon),
+          filled in the brand tokens instead of outlined. Only the desktop
+          values apply — the badge is hover-driven, so it never renders on the
+          tablet layout those `tablet:` sizes exist for.
+          The icon is drawn as an <img> rather than ArrowIcon's currentColor
+          mask: its stroke is already the navy this badge uses, and the mask
+          would flatten its two separate strokes into one silhouette. */}
       <span className="inline-flex h-[46px] -translate-x-1/2 -translate-y-1/2 items-center gap-[5px] whitespace-nowrap rounded-[48px] bg-mist px-[14px] font-['Akkurat_Mono',monospace] text-[10px] font-medium uppercase leading-none text-navy">
         <span className="relative top-[1px]">{label}</span>
-        <ArrowIcon size={14} />
+        <img src={viewImageIcon} alt="" width={14} height={14} className="block flex-shrink-0" />
       </span>
     </div>,
     document.body,
