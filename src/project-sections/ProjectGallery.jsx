@@ -7,6 +7,7 @@ import { prefersReducedMotion } from './motion'
 import { ScaleLock } from '../ScaleLock'
 import { useIsDesktop, useIsTabletPortrait } from '../useScale'
 import Lightbox from './Lightbox'
+import HoverCursor from './HoverCursor'
 
 gsap.registerPlugin(ScrollTrigger)
 
@@ -32,6 +33,7 @@ function ProjectGallery({
   const [atStart, setAtStart] = useState(true)
   const [atEnd, setAtEnd] = useState(images.length <= 1)
   const [expanded, setExpanded] = useState(null) // index of the photo in the lightbox
+  const [hovering, setHovering] = useState(false) // pointer is over a slide (drives the badge)
   // The track is the same everywhere — a centred slide with its neighbours
   // peeking. Only the gap differs: 16px on phones, where the wider GAP would eat
   // into a screen that has little room to spare. DESKTOP_QUERY, not a bare
@@ -274,8 +276,12 @@ function ProjectGallery({
             data-gallery-slide
             // No width: the slide shrink-wraps its photo, and shrink-0 keeps
             // flex from squeezing it back down.
-            className="block shrink-0 cursor-zoom-in appearance-none overflow-hidden rounded-[6px] border-0 bg-navy p-0"
+            // The badge replaces the pointer on desktop, so the native cursor is
+            // hidden there; touch layouts keep zoom-in as the affordance.
+            className="block shrink-0 cursor-zoom-in appearance-none overflow-hidden rounded-[6px] border-0 bg-navy p-0 md:cursor-none"
             aria-label={`Expand image ${i + 1} of ${images.length}`}
+            onMouseEnter={() => isDesktop && setHovering(true)}
+            onMouseLeave={() => setHovering(false)}
             onPointerDown={(e) => {
               pressRef.current = { x: e.clientX, y: e.clientY }
             }}
@@ -337,6 +343,10 @@ function ProjectGallery({
           </button>
         </div>
       )}
+
+      {/* Suppressed while the viewer is open — the badge tracks the gallery
+          underneath, which the overlay has covered. */}
+      <HoverCursor active={hovering && expanded == null} />
 
       {expanded != null && (
         <Lightbox images={images} startIndex={expanded} onClose={() => setExpanded(null)} />

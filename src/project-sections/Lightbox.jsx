@@ -202,10 +202,10 @@ function Lightbox({ images = [], startIndex = 0, onClose }) {
       // /95, and it must be a value on Tailwind's opacity scale: an off-scale
       // modifier (bg-black/92) silently compiles to a fully transparent
       // background, leaving the navbar and the next slide showing through.
-      // pb-28 reserves the band the arrow row occupies on mobile, so the photo
-      // sits above the buttons instead of behind them; desktop puts the arrows
-      // at the sides and needs no extra bottom room.
-      className="fixed inset-0 z-[100] flex items-center justify-center bg-black/95 px-4 pt-16 pb-28 outline-none md:px-20 md:py-12"
+      // pb-28 reserves the band the controls occupy, so the photo sits above
+      // them instead of behind them. Desktop keeps it too: the arrows move to
+      // the sides there, but the close button stays under the image.
+      className="fixed inset-0 z-[100] flex items-center justify-center bg-black/95 px-4 pt-16 pb-28 outline-none md:px-20 md:pt-12 md:pb-28"
       // Keeps horizontal swipes ours while leaving pinch-to-zoom to the browser.
       style={{ touchAction: 'pinch-zoom' }}
     >
@@ -213,19 +213,19 @@ function Lightbox({ images = [], startIndex = 0, onClose }) {
         type="button"
         onClick={close}
         aria-label="Close image viewer"
-        className={`absolute right-4 top-4 md:right-8 md:top-8 ${btn}`}
+        // Centred in the same bottom band as the arrows, so the three controls
+        // read as one row under the photo rather than one floating at a corner.
+        className={`fixed bottom-6 left-1/2 -translate-x-1/2 ${btn}`}
       >
         <IoClose className="text-[18px] tablet:text-[22px] md:text-[22px]" aria-hidden="true" />
       </button>
 
       {/* One pair of arrows, repositioned by breakpoint rather than duplicated:
-          a row below the photo on phones and tablets (where the image spans
-          nearly the full width and side arrows would sit on top of it), moving
-          to the vertical centre on desktop. Either way they are pushed to the
-          margins, and those margins match the close button's inset above —
-          inset-x-4 against its right-4, inset-x-8 against its md:right-8 — so
-          the next arrow lines up directly under the close.
-          The row itself is click-through so the backdrop underneath still
+          pushed to the margins of the bottom band on phones and tablets (where
+          the image spans nearly the full width and side arrows would sit on top
+          of it), moving to the vertical centre on desktop. On mobile they share
+          the band with the centred close button, so the row reads prev / close /
+          next. The row itself is click-through so the backdrop underneath still
           closes; only the buttons take pointer events. */}
       {count > 1 && (
         <div className="pointer-events-none fixed inset-x-4 bottom-6 z-10 flex items-center justify-between md:inset-x-8 md:bottom-auto md:top-1/2 md:-translate-y-1/2">
