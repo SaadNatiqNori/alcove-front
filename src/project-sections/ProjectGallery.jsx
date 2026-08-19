@@ -6,10 +6,12 @@ import { cubicEase } from '../easings'
 import { prefersReducedMotion } from './motion'
 import { ScaleLock } from '../ScaleLock'
 import { useIsDesktop, useIsTabletPortrait } from '../useScale'
+import Lightbox from './Lightbox'
 
 gsap.registerPlugin(ScrollTrigger)
 
 const GAP = 20 // px between slides — kept in sync with --gap below
+const TAP_SLOP = 6 // px a pointer may travel and still count as a tap, not a drag
 
 // Section type: "gallery"
 // Dark, full-bleed centered carousel: the first slide sits centred and its
@@ -26,8 +28,10 @@ function ProjectGallery({
 }) {
   const rootRef = useRef(null)
   const scrollRef = useRef(null)
+  const pressRef = useRef(null) // where a pointer went down on a slide, for the tap test
   const [atStart, setAtStart] = useState(true)
   const [atEnd, setAtEnd] = useState(images.length <= 1)
+  const [expanded, setExpanded] = useState(null) // index of the photo in the lightbox
   // The track is the same everywhere — a centred slide with its neighbours
   // peeking. Only the gap differs: 16px on phones, where the wider GAP would eat
   // into a screen that has little room to spare. DESKTOP_QUERY, not a bare
@@ -264,12 +268,36 @@ function ProjectGallery({
         }}
       >
         {images.map((img, i) => (
-          <div
+          <button
             key={i}
+            type="button"
             data-gallery-slide
             // No width: the slide shrink-wraps its photo, and shrink-0 keeps
             // flex from squeezing it back down.
-            className="shrink-0 overflow-hidden rounded-[6px] bg-navy"
+            className="block shrink-0 cursor-zoom-in appearance-none overflow-hidden rounded-[6px] border-0 bg-navy p-0"
+            aria-label={`Expand image ${i + 1} of ${images.length}`}
+            onPointerDown={(e) => {
+              pressRef.current = { x: e.clientX, y: e.clientY }
+            }}
+            // Opening on pointerup, not click: the track is drag-to-scroll, and
+            // a drag that happens to end over a photo still fires a click. Only
+            // a pointer that barely moved counts as a tap.
+            onPointerUp={(e) => {
+              const start = pressRef.current
+              pressRef.current = null
+              if (!start) return
+              if (Math.hypot(e.clientX - start.x, e.clientY - start.y) > TAP_SLOP) return
+              // The track preventDefaults pointerdown (to kill native image
+              // drag), which also suppresses the click's default focus. Focus it
+              // here so the lightbox has somewhere to hand focus back to.
+              e.currentTarget.focus()
+              setExpanded(i)
+            }}
+            // Keyboard activation only (`detail === 0`); pointer taps are
+            // handled above, so this does not double-fire.
+            onClick={(e) => {
+              if (e.detail === 0) setExpanded(i)
+            }}
           >
             <img
               src={img.src}
@@ -280,7 +308,7 @@ function ProjectGallery({
               className="block h-[228px] tablet:h-[440px] md:h-[440px] w-auto object-contain"
               draggable="false"
             />
-          </div>
+          </button>
         ))}
       </div>
 
@@ -308,6 +336,10 @@ function ProjectGallery({
             <IoArrowForward className="text-[15px] tablet:text-[18px] md:text-[18px]" aria-hidden="true" />
           </button>
         </div>
+      )}
+
+      {expanded != null && (
+        <Lightbox images={images} startIndex={expanded} onClose={() => setExpanded(null)} />
       )}
     </ScaleLock>
   )

@@ -232,7 +232,12 @@ function AboutPage() {
                 }}
               />
 
-              <div className="relative px-4 pt-40 tablet:pt-[148px] md:pt-52 pb-12 tablet:pb-[46px] md:pb-16">
+              {/* The bottom pad is deliberately large: it is the band of blurred
+                  image that has to breathe under the last goal line before the
+                  section hands over to the light "why" block. Sized off this
+                  section's own type (~6x the paragraph font-size: 28/30/34px)
+                  so the band reads the same at every breakpoint. */}
+              <div className="relative px-4 pt-40 tablet:pt-[148px] md:pt-52 pb-[168px] tablet:pb-[180px] md:pb-[204px]">
                 <div className="max-w-[720px] mx-auto">
                   <div data-reveal-group className="flex flex-col items-start gap-[28px] tablet:gap-[40px] md:gap-[56px]">
                     <span data-reveal className="pointer-events-auto inline-flex items-center justify-center gap-[10px] rounded-[31px] border-[0.5px] border-mist/40 px-[9px] pb-[7px] pt-[10px] font-['Akkurat_Mono',monospace] text-[14px] font-medium leading-[1.15] tracking-[-0.28px] text-center uppercase text-mist bg-transparent h-[24px]">

@@ -1,9 +1,10 @@
-import { useLayoutEffect, useRef } from 'react'
+import { useLayoutEffect, useRef, useState } from 'react'
 import { gsap } from 'gsap'
 import { ScrollTrigger } from 'gsap/ScrollTrigger'
 import { cubicEase } from '../easings'
 import { prefersReducedMotion } from './motion'
 import { ScaleLock } from '../ScaleLock'
+import Lightbox from './Lightbox'
 
 gsap.registerPlugin(ScrollTrigger)
 
@@ -20,6 +21,29 @@ function ProjectBanner({
   onDark = false,
 }) {
   const rootRef = useRef(null)
+  const [expanded, setExpanded] = useState(false)
+
+  // Applied to the <img> itself rather than a wrapping <button>: both variants
+  // below position the image with tuned insets, and wrapping it would move the
+  // geometry the opening reveal animates against.
+  const expandable = image
+    ? {
+        role: 'button',
+        tabIndex: 0,
+        'aria-label': alt ? `Expand image: ${alt}` : 'Expand image',
+        onClick: () => setExpanded(true),
+        onKeyDown: (e) => {
+          if (e.key === 'Enter' || e.key === ' ') {
+            e.preventDefault()
+            setExpanded(true)
+          }
+        },
+      }
+    : null
+
+  const lightbox = expanded && image && (
+    <Lightbox images={[{ src: image, alt }]} onClose={() => setExpanded(false)} />
+  )
 
   useLayoutEffect(() => {
     if (prefersReducedMotion()) return
@@ -41,8 +65,15 @@ function ProjectBanner({
   const inner = onDark ? (
     <div ref={rootRef} data-banner-box className="mx-auto w-full max-w-[1200px]">
       {image && (
-        <img src={image} alt={alt} data-banner-img className="block h-auto w-full" />
+        <img
+          src={image}
+          alt={alt}
+          data-banner-img
+          className="block h-auto w-full cursor-zoom-in"
+          {...expandable}
+        />
       )}
+      {lightbox}
     </div>
   ) : (
     <div
@@ -60,9 +91,11 @@ function ProjectBanner({
           // once the box goes full-bleed. Divided by --scale so it stays a
           // constant 8% of the real viewport inside the scaled canvas. Within
           // the resting letterbox slack so the small banner is unaffected.
-          className="absolute bottom-0 left-0 h-[250px] w-full px-[calc(8vw/var(--scale))] object-contain object-bottom"
+          className="absolute bottom-0 left-0 h-[250px] w-full cursor-zoom-in px-[calc(8vw/var(--scale))] object-contain object-bottom"
+          {...expandable}
         />
       )}
+      {lightbox}
     </div>
   )
 
