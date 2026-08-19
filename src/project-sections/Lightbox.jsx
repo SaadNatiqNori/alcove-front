@@ -209,13 +209,16 @@ function Lightbox({ images = [], startIndex = 0, onClose }) {
       </button>
 
       {/* One pair of arrows, repositioned by breakpoint rather than duplicated:
-          a centred row below the photo on phones and tablets (where the image
-          spans nearly the full width and side arrows would sit on top of it),
-          and split to the left/right edges at the vertical centre on desktop.
+          a row below the photo on phones and tablets (where the image spans
+          nearly the full width and side arrows would sit on top of it), moving
+          to the vertical centre on desktop. Either way they are pushed to the
+          margins, and those margins match the close button's inset above —
+          inset-x-4 against its right-4, inset-x-8 against its md:right-8 — so
+          the next arrow lines up directly under the close.
           The row itself is click-through so the backdrop underneath still
           closes; only the buttons take pointer events. */}
       {count > 1 && (
-        <div className="pointer-events-none fixed inset-x-0 bottom-6 z-10 flex items-center justify-center gap-2 md:inset-x-8 md:bottom-auto md:top-1/2 md:-translate-y-1/2 md:justify-between">
+        <div className="pointer-events-none fixed inset-x-4 bottom-6 z-10 flex items-center justify-between md:inset-x-8 md:bottom-auto md:top-1/2 md:-translate-y-1/2">
           <button
             type="button"
             onClick={() => go(-1)}
