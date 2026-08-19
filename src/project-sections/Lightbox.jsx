@@ -24,7 +24,6 @@ function Lightbox({ images = [], startIndex = 0, onClose }) {
   const rootRef = useRef(null)
   const frameRef = useRef(null)
   const imgRef = useRef(null)
-  const closeRef = useRef(null)
   const closingRef = useRef(false)
 
   const count = images.length
@@ -109,8 +108,12 @@ function Lightbox({ images = [], startIndex = 0, onClose }) {
         if (!stops?.length) return
         const first = stops[0]
         const last = stops[stops.length - 1]
-        const onEdge = e.shiftKey ? document.activeElement === first : document.activeElement === last
-        if (onEdge || !rootRef.current.contains(document.activeElement)) {
+        const active = document.activeElement
+        // The container counts as the start: focus rests on it when the viewer
+        // opens, and a Shift+Tab from there would otherwise walk out backwards.
+        const atStart = active === first || active === rootRef.current
+        const onEdge = e.shiftKey ? atStart : active === last
+        if (onEdge || !rootRef.current.contains(active)) {
           e.preventDefault()
           ;(e.shiftKey ? last : first).focus()
         }
@@ -122,9 +125,16 @@ function Lightbox({ images = [], startIndex = 0, onClose }) {
 
   // Move focus into the overlay, and put it back where it came from on close so
   // keyboard users return to the thumbnail they opened.
+  //
+  // Focus lands on the dialog container, not the close button: the browser
+  // paints a focus ring on programmatic focus, which read as a stray blue
+  // outline around the close button every time the viewer opened. The container
+  // takes focus silently (outline-none, tabIndex -1), so Escape and the tab
+  // trap still work and Tab still reaches the buttons — with their focus rings
+  // intact, which is where a ring actually belongs.
   useEffect(() => {
     const previous = document.activeElement
-    closeRef.current?.focus()
+    rootRef.current?.focus({ preventScroll: true })
     return () => {
       if (previous instanceof HTMLElement) previous.focus()
     }
@@ -178,6 +188,7 @@ function Lightbox({ images = [], startIndex = 0, onClose }) {
       role="dialog"
       aria-modal="true"
       aria-label="Image viewer"
+      tabIndex={-1}
       // Clicks that land on the backdrop itself close; clicks on the photo or
       // the controls do not.
       onClick={(e) => {
@@ -194,12 +205,11 @@ function Lightbox({ images = [], startIndex = 0, onClose }) {
       // pb-28 reserves the band the arrow row occupies on mobile, so the photo
       // sits above the buttons instead of behind them; desktop puts the arrows
       // at the sides and needs no extra bottom room.
-      className="fixed inset-0 z-[100] flex items-center justify-center bg-black/95 px-4 pt-16 pb-28 md:px-20 md:py-12"
+      className="fixed inset-0 z-[100] flex items-center justify-center bg-black/95 px-4 pt-16 pb-28 outline-none md:px-20 md:py-12"
       // Keeps horizontal swipes ours while leaving pinch-to-zoom to the browser.
       style={{ touchAction: 'pinch-zoom' }}
     >
       <button
-        ref={closeRef}
         type="button"
         onClick={close}
         aria-label="Close image viewer"
